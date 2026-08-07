@@ -1,0 +1,1869 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Love My Tour - Outbound & Domestic Travel Packages | Hyderabad</title>
+  <meta name="description"
+    content="Love My Tour (Trilochan Travel Solutions) offers discount domestic and international tour packages, flight tickets, and expert travel guides from Hyderabad." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Cormorant+Garamond:ital,wght@1,400;1,500;1,600;1,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div class="app-container">
+
+    <!-- TOP GLOBAL NAVIGATION BAR -->
+    <header class="global-navbar">
+      <div class="nav-container">
+        <a href="#home" class="logo-wrapper">
+          <div class="logo-brand-container">
+            <img src="assets/pngs/lovemytour-logo.png" alt="Love My Tour Logo" class="brand-logo" decoding="async" fetchpriority="high" />
+          </div>
+        </a>
+
+        <!-- Mobile Hamburger Toggle Button -->
+        <button class="mobile-toggle-btn" id="mobileToggleBtn" aria-label="Toggle navigation menu">
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+        </button>
+
+        <!-- Navigation Links (Left Side Half Alignment) -->
+        <nav class="nav-links" id="mainNavLinks">
+          <a href="#home" class="nav-item nav-link-home active">Home</a>
+
+          <!-- Mobile Only 7 Continents Link -->
+          <a href="#continents" class="nav-item nav-link-mobile-continents">Continents</a>
+
+          <!-- 7 Continents Mega Dropdown Menu (Desktop Only) -->
+          <div class="nav-dropdown nav-dropdown-packages">
+            <a href="#continents" class="nav-item dropdown-trigger nav-link-packages" type="button" style="text-decoration:none;">
+              <span>Continents</span>
+              <svg class="dropdown-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </a>
+
+            <div class="dropdown-menu packages-mega-menu">
+              <!-- Top Mega Header: All Continents Link -->
+              <div class="mega-menu-header">
+                <a href="#continents" class="mega-all-link">
+                  <div class="mega-header-icon">🌍</div>
+                  <div class="mega-header-text">
+                    <strong>Explore All 7 Continents</strong>
+                    <span>Browse iconic tourist spots across Asia, Africa, Americas, Antarctica, Europe & Australia</span>
+                  </div>
+                  <span class="mega-header-arrow">→</span>
+                </a>
+              </div>
+
+              <!-- 7 Continents Links Grid — Continent Names Only -->
+              <div class="mega-menu-grid continent-mega-grid">
+                <a href="#continents/asia" class="mega-continent-pill">
+                  <span class="col-icon">🌏</span>
+                  <span>Asia</span>
+                </a>
+                <a href="#continents/africa" class="mega-continent-pill">
+                  <span class="col-icon">🦁</span>
+                  <span>Africa</span>
+                </a>
+                <a href="#continents/europe" class="mega-continent-pill">
+                  <span class="col-icon">🏰</span>
+                  <span>Europe</span>
+                </a>
+                <a href="#continents/australia" class="mega-continent-pill">
+                  <span class="col-icon">🦘</span>
+                  <span>Australia</span>
+                </a>
+                <a href="#continents/south-america" class="mega-continent-pill">
+                  <span class="col-icon">🌿</span>
+                  <span>South America</span>
+                </a>
+                <a href="#continents/north-america" class="mega-continent-pill">
+                  <span class="col-icon">🗽</span>
+                  <span>North America</span>
+                </a>
+                <a href="#continents/antarctica" class="mega-continent-pill">
+                  <span class="col-icon">🧊</span>
+                  <span>Antarctica</span>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <a href="#about" class="nav-item nav-link-about">About us</a>
+          <a href="#services" class="nav-item nav-link-services">Services</a>
+          <button class="nav-item nav-cta open-enquiry-btn">Enquire now</button>
+        </nav>
+      </div>
+    </header>
+
+    <!-- ==================== VIEW 1: HOME PAGE ==================== -->
+    <div id="home-view" class="page-view active">
+      <!-- HERO SECTION & FLIGHT BOOKING -->
+      <main class="hero-wrapper" id="home">
+        <!-- HERO SECTION — Photo Slideshow Background (same style & animation as the 7 Continents page) -->
+        <section class="home-hero">
+          <div class="home-hero-bg-slider">
+            <!-- Slide 1 loads immediately; slides 2-6 get their image from CSS only once
+                 .slides-ready is set after page load (fast first paint on mobile) -->
+            <div class="home-hero-slide active" data-location="Eiffel Tower, Paris"
+              style="background-image: url('assets/packages-images/heritage-europe-paris.jpg');"></div>
+            <div class="home-hero-slide" data-slide="2" data-location="The Swiss Alps, Switzerland"></div>
+            <div class="home-hero-slide" data-slide="3" data-location="Pyramids of Giza, Egypt"></div>
+            <div class="home-hero-slide" data-slide="4" data-location="Ha Long Bay, Vietnam"></div>
+            <div class="home-hero-slide" data-slide="5" data-location="Kyoto, Japan"></div>
+            <div class="home-hero-slide" data-slide="6" data-location="Desert Dunes, Dubai"></div>
+            <div class="home-hero-overlay"></div>
+          </div>
+
+          <!-- Live caption naming the destination currently on screen -->
+          <div class="home-hero-location" id="homeHeroLocation" aria-live="polite">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            <span class="home-hero-location-text">Eiffel Tower, Paris</span>
+          </div>
+
+        <!-- Hero Content Overlay (Mobile View maintains intact Get Quote form & fields) -->
+        <div class="hero-content">
+          <!-- Headline Block — two messages that cross-fade in step with the
+               background photos (script.js -> initHeroTextRotator).
+               Panel 1 shows first: the exact copy from the 7 Continents page.
+               Panel 2 takes over 3s later: Book Your Adventure + Book Now. -->
+          <div class="hero-heading-block">
+            <div class="hero-rotator" id="heroRotator">
+
+              <!-- Panel 1 — same text as the 7 Continents page hero -->
+              <div class="hero-rotator-panel active" data-panel="continents">
+                <span class="continents-badge">🌐 7 Wonders of the Earth</span>
+                <h1 class="continents-hero-title">Explore the World by Continent</h1>
+                <p class="continents-hero-subtitle">Discover handpicked tourist destinations across Asia, Africa, North
+                  America, South America, Antarctica, Europe, and Australia.</p>
+
+                <div class="continents-quick-nav">
+                  <a href="#continents/asia" class="continent-pill-btn">Asia</a>
+                  <a href="#continents/africa" class="continent-pill-btn">Africa</a>
+                  <a href="#continents/north-america" class="continent-pill-btn">North America</a>
+                  <a href="#continents/south-america" class="continent-pill-btn">South America</a>
+                  <a href="#continents/antarctica" class="continent-pill-btn">Antarctica</a>
+                  <a href="#continents/europe" class="continent-pill-btn">Europe</a>
+                  <a href="#continents/australia" class="continent-pill-btn">Australia</a>
+                </div>
+              </div>
+
+              <!-- Panel 2 — booking message -->
+              <div class="hero-rotator-panel" data-panel="book" aria-hidden="true">
+                <h1 class="main-title">Book Your Next <span class="accent-serif">Adventure</span></h1>
+                <p class="hero-subtitle">Discover incredible destinations with personalised flight deals, holiday
+                  packages,
+                  and expert travel planning—all tailored to your journey.</p>
+                <button type="button" class="mobile-hero-book-btn open-enquiry-btn">Book Now</button>
+              </div>
+
+            </div>
+
+            <!-- Country Search — PERMANENT, sits below both rotating headline panels
+                 (does not fade/disappear when the text switches between "Explore the
+                 World" and "Book Your Adventure"). Type a country name and press
+                 Enter / tap a suggestion to jump straight to that country's page. -->
+            <div class="country-search-box" id="countrySearchBox">
+              <form id="countrySearchForm" class="country-search-form" autocomplete="off">
+                <svg class="country-search-icon" viewBox="0 0 24 24" width="20" height="20" fill="none"
+                  stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+                  aria-hidden="true">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
+                <input type="text" id="countrySearchInput" class="country-search-input"
+                  placeholder="Search a country… e.g. Kenya, Japan, Maldives" aria-label="Search a country"
+                  aria-expanded="false" role="combobox" aria-autocomplete="list"
+                  aria-controls="countrySearchResults" />
+                <button type="submit" class="country-search-go-btn" aria-label="Go to country">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </form>
+              <ul id="countrySearchResults" class="country-search-results" role="listbox" hidden></ul>
+            </div>
+          </div>
+
+          <!-- Get Quote Widget -->
+          <div class="search-box">
+            <!-- Submits straight to WhatsApp as a formatted enquiry (script.js) -->
+            <form class="quote-form" id="heroQuoteForm">
+              <div class="quote-form-grid">
+                <div class="input-group">
+                  <label for="quote-name">Name</label>
+                  <div class="input-field">
+                    <input type="text" id="quote-name" placeholder="Full Name" required />
+                  </div>
+                </div>
+
+                <div class="input-group">
+                  <label for="quote-phone">Phone Number</label>
+                  <div class="input-field">
+                    <input type="tel" id="quote-phone" placeholder="Phone Number" required />
+                  </div>
+                </div>
+
+                <div class="input-group">
+                  <label for="quote-email">Email</label>
+                  <div class="input-field">
+                    <input type="email" id="quote-email" placeholder="Email Address" required />
+                  </div>
+                </div>
+
+                <div class="input-group">
+                  <label for="quote-destination">Destination</label>
+                  <div class="input-field">
+                    <input type="text" id="quote-destination" placeholder="Destination (e.g. Bali, Maldives)"
+                      required />
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-action-row">
+                <button type="submit" class="get-quote-btn">
+                  <span>Get Quote Now</span>
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </form>
+          </div>
+          <!-- /.hero-content -->
+        </div>
+        </section>
+        <!-- /.home-hero -->
+
+        <!-- 3 Stacked Rows — ONLY SAFARI ADVENTURES -->
+        <section class="destinations-container" id="stacked-safari-expeditions">
+            
+            <div class="destinations-header safari-main-header">
+              <div class="header-text-block">
+                <span class="dest-badge">SAFARI ADVENTURES</span>
+                <h2>Global Wild Safaris</h2>
+              </div>
+            </div>
+
+            <div class="safari-stacked-rows">
+
+              <!-- ROW 1: Big Cat & Savanna Safaris — scrolls left -->
+              <div class="destination-row-block">
+                <div class="cards-grid cards-grid-row-1">
+                  <div class="marquee-inner">
+                    <!-- Set A -->
+                    <article class="card card-wide view-package-trigger" data-package-id="africa-kenya-safari">
+                      <img src="assets/images/kenya.jpg" alt="Kenya Maasai Mara" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">7 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Kenya</h3><p class="spot">Maasai Mara</p></div></div>
+                    </article>
+                    <article class="card card-compact view-package-trigger" data-package-id="africa-tanzania-safari">
+                      <img src="assets/images/tanzania.jpg" alt="Tanzania Serengeti" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">7 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Tanzania</h3><p class="spot">Serengeti Plains</p></div></div>
+                    </article>
+                    <article class="card card-wide view-package-trigger" data-package-id="africa-southafrica-safari">
+                      <img src="assets/packages-images/safari-africa-kruger.jpg" alt="South Africa Kruger" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">6 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">South Africa</h3><p class="spot">Kruger Park</p></div></div>
+                    </article>
+                    <article class="card card-compact view-package-trigger" data-package-id="africa-botswana-safari">
+                      <img src="assets/packages-images/safari-botswana-real.jpg" alt="Botswana Okavango" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">6 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Botswana</h3><p class="spot">Okavango Delta</p></div></div>
+                    </article>
+                    <article class="card card-wide view-package-trigger" data-package-id="africa-namibia-safari">
+                      <img src="assets/packages-images/safari-namibia-real.jpg" alt="Namibia Etosha" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">7 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Namibia</h3><p class="spot">Etosha &amp; Namib</p></div></div>
+                    </article>
+                    <article class="card card-compact view-package-trigger" data-package-id="africa-uganda-safari">
+                      <img src="assets/images/uganda.jpg" alt="Uganda Gorilla" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">5 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Uganda</h3><p class="spot">Bwindi Forest</p></div></div>
+                    </article>
+                    <!-- Set B — duplicate for seamless loop -->
+                    <article class="card card-wide view-package-trigger" data-package-id="africa-kenya-safari" aria-hidden="true">
+                      <img src="assets/images/kenya.jpg" alt="" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">7 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Kenya</h3><p class="spot">Maasai Mara</p></div></div>
+                    </article>
+                    <article class="card card-compact view-package-trigger" data-package-id="africa-tanzania-safari" aria-hidden="true">
+                      <img src="assets/images/tanzania.jpg" alt="" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">7 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Tanzania</h3><p class="spot">Serengeti Plains</p></div></div>
+                    </article>
+                    <article class="card card-wide view-package-trigger" data-package-id="africa-southafrica-safari" aria-hidden="true">
+                      <img src="assets/packages-images/safari-africa-kruger.jpg" alt="" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">6 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">South Africa</h3><p class="spot">Kruger Park</p></div></div>
+                    </article>
+                    <article class="card card-compact view-package-trigger" data-package-id="africa-botswana-safari" aria-hidden="true">
+                      <img src="assets/packages-images/safari-botswana-real.jpg" alt="" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">6 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Botswana</h3><p class="spot">Okavango Delta</p></div></div>
+                    </article>
+                    <article class="card card-wide view-package-trigger" data-package-id="africa-namibia-safari" aria-hidden="true">
+                      <img src="assets/packages-images/safari-namibia-real.jpg" alt="" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">7 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Namibia</h3><p class="spot">Etosha &amp; Namib</p></div></div>
+                    </article>
+                    <article class="card card-compact view-package-trigger" data-package-id="africa-uganda-safari" aria-hidden="true">
+                      <img src="assets/images/uganda.jpg" alt="" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">5 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Uganda</h3><p class="spot">Bwindi Forest</p></div></div>
+                    </article>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ROW 2: Exotic Predators & Rainforest Safaris — scrolls right -->
+              <div class="destination-row-block">
+                <div class="cards-grid cards-grid-row-2">
+                  <div class="marquee-inner marquee-reverse">
+                    <!-- Set A -->
+                    <article class="card card-compact view-package-trigger" data-package-id="southamerica-brazil-pantanal-safari">
+                      <img src="assets/images/brazil.jpg" alt="Brazil Jaguar" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">6 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Brazil</h3><p class="spot">Pantanal Wetlands</p></div></div>
+                    </article>
+                    <article class="card card-wide view-package-trigger" data-package-id="asia-srilanka-leopard-safari">
+                      <img src="assets/packages-images/safari-srilanka-leopard.jpg" alt="Sri Lanka Leopard" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">5 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Sri Lanka</h3><p class="spot">Yala Park</p></div></div>
+                    </article>
+                    <article class="card card-compact view-package-trigger" data-package-id="africa-zimbabwe-safari">
+                      <img src="assets/images/zimbabwe.jpg" alt="Zimbabwe Mana Pools" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">6 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Zimbabwe</h3><p class="spot">Mana Pools &amp; Falls</p></div></div>
+                    </article>
+                    <article class="card card-wide view-package-trigger" data-package-id="africa-zambia-safari">
+                      <img src="https://images.unsplash.com/photo-1666732566977-8805c13a6ce2?auto=format&amp;fit=crop&amp;w=800&amp;q=80" alt="Zambia Falls" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">6 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Zambia</h3><p class="spot">Luangwa &amp; Falls</p></div></div>
+                    </article>
+                    <article class="card card-compact view-package-trigger" data-package-id="africa-madagascar-safari">
+                      <img src="assets/packages-images/safari-madagascar-baobab.jpg" alt="Madagascar Lemurs" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">7 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Madagascar</h3><p class="spot">Baobabs &amp; Lemurs</p></div></div>
+                    </article>
+                    <article class="card card-wide view-package-trigger" data-package-id="africa-rwanda-safari">
+                      <img src="assets/images/rwanda.jpg" alt="Rwanda Gorilla Safari" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">5 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Rwanda</h3><p class="spot">Volcanoes Gorilla</p></div></div>
+                    </article>
+                    <!-- Set B — duplicate for seamless loop -->
+                    <article class="card card-compact view-package-trigger" data-package-id="southamerica-brazil-pantanal-safari" aria-hidden="true">
+                      <img src="assets/images/brazil.jpg" alt="" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">6 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Brazil</h3><p class="spot">Pantanal Wetlands</p></div></div>
+                    </article>
+                    <article class="card card-wide view-package-trigger" data-package-id="asia-srilanka-leopard-safari" aria-hidden="true">
+                      <img src="assets/packages-images/safari-srilanka-leopard.jpg" alt="" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">5 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Sri Lanka</h3><p class="spot">Yala Park</p></div></div>
+                    </article>
+                    <article class="card card-compact view-package-trigger" data-package-id="africa-zimbabwe-safari" aria-hidden="true">
+                      <img src="assets/images/zimbabwe.jpg" alt="" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">6 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Zimbabwe</h3><p class="spot">Mana Pools &amp; Falls</p></div></div>
+                    </article>
+                    <article class="card card-wide view-package-trigger" data-package-id="africa-zambia-safari" aria-hidden="true">
+                      <img src="https://images.unsplash.com/photo-1666732566977-8805c13a6ce2?auto=format&amp;fit=crop&amp;w=800&amp;q=80" alt="" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">6 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Zambia</h3><p class="spot">Luangwa &amp; Falls</p></div></div>
+                    </article>
+                    <article class="card card-compact view-package-trigger" data-package-id="africa-madagascar-safari" aria-hidden="true">
+                      <img src="assets/packages-images/safari-madagascar-baobab.jpg" alt="" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">7 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Madagascar</h3><p class="spot">Baobabs &amp; Lemurs</p></div></div>
+                    </article>
+                    <article class="card card-wide view-package-trigger" data-package-id="africa-rwanda-safari" aria-hidden="true">
+                      <img src="assets/images/rwanda.jpg" alt="" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">5 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Rwanda</h3><p class="spot">Volcanoes Gorilla</p></div></div>
+                    </article>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ROW 3: Polar, Outback & Wilderness — scrolls left -->
+              <div class="destination-row-block">
+                <div class="cards-grid cards-grid-row-3">
+                  <div class="marquee-inner">
+                    <!-- Set A -->
+                    <article class="card card-wide view-package-trigger" data-package-id="northamerica-alaska-grizzly-safari">
+                      <img src="assets/packages-images/safari-alaska-grizzly.jpg" alt="Alaska Grizzly" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">6 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Alaska</h3><p class="spot">Katmai &amp; Yellowstone</p></div></div>
+                    </article>
+                    <article class="card card-compact view-package-trigger" data-package-id="australia-outback-kakadu-safari">
+                      <img src="assets/packages-images/safari-australia-croc.jpg" alt="Australia Outback" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">5 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Australia</h3><p class="spot">Kakadu Outback</p></div></div>
+                    </article>
+                    <article class="card card-wide view-package-trigger" data-package-id="antarctica-penguin-polar-safari">
+                      <img src="assets/packages-images/safari-antarctica-penguins.jpg" alt="Antarctica Penguins" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">8 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Antarctica</h3><p class="spot">South Georgia Ice</p></div></div>
+                    </article>
+                    <article class="card card-compact view-package-trigger" data-package-id="europe-norway-safari">
+                      <img src="assets/packages-images/safari-norway-real.jpg" alt="Norway Polar Bear" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">6 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Norway</h3><p class="spot">Svalbard Arctic</p></div></div>
+                    </article>
+                    <article class="card card-wide view-package-trigger" data-package-id="centralamerica-costarica-safari">
+                      <img src="https://images.unsplash.com/photo-1623385521692-4a591e66619e?auto=format&amp;fit=crop&amp;w=800&amp;q=80" alt="Costa Rica Rainforest" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">5 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Costa Rica</h3><p class="spot">Corcovado Jungle</p></div></div>
+                    </article>
+                    <article class="card card-compact view-package-trigger" data-package-id="africa-southafrica-safari">
+                      <img src="assets/packages-images/safari-africa-kruger.jpg" alt="South Africa Sabi Sands" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">6 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">South Africa</h3><p class="spot">Sabi Sands Bush</p></div></div>
+                    </article>
+                    <!-- Set B — duplicate for seamless loop -->
+                    <article class="card card-wide view-package-trigger" data-package-id="northamerica-alaska-grizzly-safari" aria-hidden="true">
+                      <img src="assets/packages-images/safari-alaska-grizzly.jpg" alt="" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">6 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Alaska</h3><p class="spot">Katmai &amp; Yellowstone</p></div></div>
+                    </article>
+                    <article class="card card-compact view-package-trigger" data-package-id="australia-outback-kakadu-safari" aria-hidden="true">
+                      <img src="assets/packages-images/safari-australia-croc.jpg" alt="" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">5 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Australia</h3><p class="spot">Kakadu Outback</p></div></div>
+                    </article>
+                    <article class="card card-wide view-package-trigger" data-package-id="antarctica-penguin-polar-safari" aria-hidden="true">
+                      <img src="assets/packages-images/safari-antarctica-penguins.jpg" alt="" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">8 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Antarctica</h3><p class="spot">South Georgia Ice</p></div></div>
+                    </article>
+                    <article class="card card-compact view-package-trigger" data-package-id="europe-norway-safari" aria-hidden="true">
+                      <img src="assets/packages-images/safari-norway-real.jpg" alt="" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">6 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Norway</h3><p class="spot">Svalbard Arctic</p></div></div>
+                    </article>
+                    <article class="card card-wide view-package-trigger" data-package-id="centralamerica-costarica-safari" aria-hidden="true">
+                      <img src="https://images.unsplash.com/photo-1623385521692-4a591e66619e?auto=format&amp;fit=crop&amp;w=800&amp;q=80" alt="" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">5 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">Costa Rica</h3><p class="spot">Corcovado Jungle</p></div></div>
+                    </article>
+                    <article class="card card-compact view-package-trigger" data-package-id="africa-southafrica-safari" aria-hidden="true">
+                      <img src="assets/packages-images/safari-africa-kruger.jpg" alt="" class="card-bg" decoding="async" /><div class="card-gradient"></div>
+                      <span class="wildlife-tag">6 DAYS</span>
+                      <div class="card-info"><div class="location-details"><h3 class="country">South Africa</h3><p class="spot">Sabi Sands Bush</p></div></div>
+                    </article>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+        </section>
+        <!-- /.destinations-container -->
+      </main>
+
+  
+  <section class="cinematic-portfolio-section" id="portfolio">
+    <!-- Ambient Background Details: Watermark Map & Subtle Ambient Lighting -->
+    <div class="cinematic-bg-ambience">
+      <svg class="world-map-watermark" viewBox="0 0 1000 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M150,120 Q200,80 250,130 T350,140 T450,110 T600,150 T750,120 T850,160" stroke="rgba(15,23,42,0.035)"
+          stroke-width="1.5" stroke-dasharray="4 6" />
+        <path d="M100,280 Q220,240 300,290 T480,260 T620,310 T780,270 T900,320" stroke="rgba(15,23,42,0.03)"
+          stroke-width="1.5" stroke-dasharray="6 8" />
+        <circle cx="250" cy="130" r="3" fill="#2563eb" opacity="0.2" />
+        <circle cx="450" cy="110" r="3" fill="#2563eb" opacity="0.2" />
+        <circle cx="750" cy="120" r="3" fill="#2563eb" opacity="0.2" />
+      </svg>
+      <div class="ambient-glow glow-top-left"></div>
+      <div class="ambient-glow glow-bottom-right"></div>
+    </div>
+
+    <div class="portfolio-container">
+      <div class="cinematic-header">
+        <h2 class="cinematic-title">Unlock the world</h2>
+        <p class="cinematic-subtitle">Explore continents filled with iconic cities, hidden gems, breathtaking landscapes, and unforgettable experiences—your next adventure is just a click away.</p>
+      </div>
+
+      <!-- Curved Dashed Connecting Line SVG Path -->
+      <div class="curved-path-wrapper">
+        <svg class="curved-connecting-line" viewBox="0 0 1200 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M50,90 Q300,10 600,60 T1150,90" stroke="#cbd5e1" stroke-width="1.8" stroke-dasharray="5 7" />
+          <circle cx="310" cy="38" r="4" fill="#94a3b8" />
+          <circle cx="890" cy="38" r="4" fill="#94a3b8" />
+        </svg>
+      </div>
+
+      <!-- 3D Cinematic Fan-Spread Carousel Stage -->
+      <div class="cinematic-carousel-outer">
+        <!-- Left arrow — positioned at viewport edge -->
+        <button class="carousel-control-btn prev-btn" id="carouselPrevBtn" aria-label="Previous Destination">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+
+        <div class="cinematic-carousel-container">
+          <div class="cinematic-carousel-stage" id="cinematicStage">
+            <!-- Fan-spread cards injected by JS -->
+          </div>
+        </div>
+
+        <!-- Right arrow — positioned at viewport edge -->
+        <button class="carousel-control-btn next-btn" id="carouselNextBtn" aria-label="Next Destination">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </button>
+      </div>
+
+
+
+      <!-- Indicator Dots -->
+      <div class="carousel-indicators" id="carouselDots">
+        <!-- Generated by JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTINUOUS PARTNER MARQUEE RAIL -->
+  <section class="partner-rail-section">
+    <p class="partner-rail-title">Featured Destinations</p>
+    <div class="marquee-container">
+      <div class="marquee-content">
+        <a href="#category/andaman" class="partner-item"><span class="partner-icon">🏝️</span> Andaman</a>
+        <a href="#category/bali" class="partner-item"><span class="partner-icon">🌺</span> Bali</a>
+        <a href="#category/dubai" class="partner-item"><span class="partner-icon">🏙️</span> Dubai</a>
+        <a href="#category/europe" class="partner-item"><span class="partner-icon">🏰</span> Europe</a>
+        <a href="#category/goa" class="partner-item"><span class="partner-icon">🏖️</span> Goa</a>
+        <a href="#category/himachal" class="partner-item"><span class="partner-icon">🏔️</span> Himachal</a>
+        <a href="#category/hong-kong" class="partner-item"><span class="partner-icon">🎡</span> Hong Kong</a>
+        <a href="#category/kashmir" class="partner-item"><span class="partner-icon">❄️</span> Kashmir</a>
+        <a href="#category/kerala" class="partner-item"><span class="partner-icon">🚣</span> Kerala</a>
+        <a href="#category/ladakh" class="partner-item"><span class="partner-icon">🏍️</span> Leh-Ladakh</a>
+        <a href="#category/maldives" class="partner-item"><span class="partner-icon">🌴</span> Maldives</a>
+        <a href="#category/singapore" class="partner-item"><span class="partner-icon">🦁</span> Singapore</a>
+        <a href="#category/thailand" class="partner-item"><span class="partner-icon">🐘</span> Thailand</a>
+        <a href="#category/turkey" class="partner-item"><span class="partner-icon">🕌</span> Turkey</a>
+        <!-- Loop duplicate for seamless scroll -->
+        <a href="#category/andaman" class="partner-item"><span class="partner-icon">🏝️</span> Andaman</a>
+        <a href="#category/bali" class="partner-item"><span class="partner-icon">🌺</span> Bali</a>
+        <a href="#category/dubai" class="partner-item"><span class="partner-icon">🏙️</span> Dubai</a>
+        <a href="#category/europe" class="partner-item"><span class="partner-icon">🏰</span> Europe</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== INCREDIBLE INDIA & DOMESTIC EXPEDITION MARQUEE SECTION ==================== -->
+  <section class="domestic-marquee-section" id="domestic-expeditions">
+    <div class="domestic-section-header">
+      <span class="domestic-eyebrow">🇮🇳 EXPLORE INCREDIBLE INDIA</span>
+      <h2 class="domestic-title">Explore Incredible India</h2>
+      <p class="domestic-subtitle">Discover Kashmir's snow peaks, Kerala's serene backwaters, Goa's golden beaches, and Ladakh's high mountain passes customized for your dream journey.</p>
+    </div>
+
+    <div class="domestic-marquee-container">
+      <div class="domestic-marquee-track">
+        <!-- Set A -->
+        <a href="#category/kashmir" class="domestic-photo-card">
+          <img src="https://images.unsplash.com/photo-1595815771614-ade9d652a65d?auto=format&fit=crop&w=600&q=80" alt="Kashmir" class="domestic-card-img" loading="lazy" decoding="async" />
+          <div class="domestic-card-gradient"></div>
+          <span class="domestic-card-tag">❄️ PARADISE ON EARTH</span>
+          <div class="domestic-card-info">
+            <h3 class="domestic-card-name">Kashmir</h3>
+            <p class="domestic-card-desc">Dal Lake Houseboats, Gulmarg Snow &amp; Pahalgam Valleys</p>
+          </div>
+        </a>
+        <a href="#category/kerala" class="domestic-photo-card">
+          <img src="https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=600&q=80" alt="Kerala" class="domestic-card-img" loading="lazy" decoding="async" />
+          <div class="domestic-card-gradient"></div>
+          <span class="domestic-card-tag">🚣 GOD'S OWN COUNTRY</span>
+          <div class="domestic-card-info">
+            <h3 class="domestic-card-name">Kerala</h3>
+            <p class="domestic-card-desc">Alleppey Backwaters &amp; Munnar Tea Gardens</p>
+          </div>
+        </a>
+        <a href="#category/himachal" class="domestic-photo-card">
+          <img src="https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=600&q=80" alt="Himachal" class="domestic-card-img" loading="lazy" decoding="async" />
+          <div class="domestic-card-gradient"></div>
+          <span class="domestic-card-tag">🏔️ VALLEY OF GODS</span>
+          <div class="domestic-card-info">
+            <h3 class="domestic-card-name">Himachal</h3>
+            <p class="domestic-card-desc">Manali Snow Pass, Shimla Hills &amp; Solang Valley</p>
+          </div>
+        </a>
+        <a href="#category/ladakh" class="domestic-photo-card">
+          <img src="https://images.unsplash.com/photo-1581793745862-99fde7fa73d2?auto=format&fit=crop&w=600&q=80" alt="Leh-Ladakh" class="domestic-card-img" loading="lazy" decoding="async" />
+          <div class="domestic-card-gradient"></div>
+          <span class="domestic-card-tag">🏍️ HIGH MOUNTAIN PASSES</span>
+          <div class="domestic-card-info">
+            <h3 class="domestic-card-name">Leh-Ladakh</h3>
+            <p class="domestic-card-desc">Pangong Lake &amp; Khardung La Pass Expedition</p>
+          </div>
+        </a>
+        <a href="#category/goa" class="domestic-photo-card">
+          <img src="assets/packages-images/goa.png" alt="Goa" class="domestic-card-img" loading="lazy" decoding="async" />
+          <div class="domestic-card-gradient"></div>
+          <span class="domestic-card-tag">🏖️ SUN &amp; GOLDEN BEACHES</span>
+          <div class="domestic-card-info">
+            <h3 class="domestic-card-name">Goa</h3>
+            <p class="domestic-card-desc">Calangute Beach, Watersports &amp; Sunset Cruises</p>
+          </div>
+        </a>
+        <a href="#category/andaman" class="domestic-photo-card">
+          <img src="assets/packages-images/Andaman.jpg" alt="Andaman" class="domestic-card-img" loading="lazy" decoding="async" />
+          <div class="domestic-card-gradient"></div>
+          <span class="domestic-card-tag">🏝️ TROPICAL EMERALD ISLES</span>
+          <div class="domestic-card-info">
+            <h3 class="domestic-card-name">Andaman</h3>
+            <p class="domestic-card-desc">Radhanagar Beach &amp; Havelock Coral Reefs</p>
+          </div>
+        </a>
+
+        <!-- Set B — duplicate loop -->
+        <a href="#category/kashmir" class="domestic-photo-card" aria-hidden="true">
+          <img src="https://images.unsplash.com/photo-1595815771614-ade9d652a65d?auto=format&fit=crop&w=600&q=80" alt="" class="domestic-card-img" loading="lazy" decoding="async" />
+          <div class="domestic-card-gradient"></div>
+          <span class="domestic-card-tag">❄️ PARADISE ON EARTH</span>
+          <div class="domestic-card-info">
+            <h3 class="domestic-card-name">Kashmir</h3>
+            <p class="domestic-card-desc">Dal Lake Houseboats, Gulmarg Snow &amp; Pahalgam Valleys</p>
+          </div>
+        </a>
+        <a href="#category/kerala" class="domestic-photo-card" aria-hidden="true">
+          <img src="https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=600&q=80" alt="" class="domestic-card-img" loading="lazy" decoding="async" />
+          <div class="domestic-card-gradient"></div>
+          <span class="domestic-card-tag">🚣 GOD'S OWN COUNTRY</span>
+          <div class="domestic-card-info">
+            <h3 class="domestic-card-name">Kerala</h3>
+            <p class="domestic-card-desc">Alleppey Backwaters &amp; Munnar Tea Gardens</p>
+          </div>
+        </a>
+        <a href="#category/himachal" class="domestic-photo-card" aria-hidden="true">
+          <img src="https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=600&q=80" alt="" class="domestic-card-img" loading="lazy" decoding="async" />
+          <div class="domestic-card-gradient"></div>
+          <span class="domestic-card-tag">🏔️ VALLEY OF GODS</span>
+          <div class="domestic-card-info">
+            <h3 class="domestic-card-name">Himachal</h3>
+            <p class="domestic-card-desc">Manali Snow Pass, Shimla Hills &amp; Solang Valley</p>
+          </div>
+        </a>
+        <a href="#category/ladakh" class="domestic-photo-card" aria-hidden="true">
+          <img src="https://images.unsplash.com/photo-1581793745862-99fde7fa73d2?auto=format&fit=crop&w=600&q=80" alt="" class="domestic-card-img" loading="lazy" decoding="async" />
+          <div class="domestic-card-gradient"></div>
+          <span class="domestic-card-tag">🏍️ HIGH MOUNTAIN PASSES</span>
+          <div class="domestic-card-info">
+            <h3 class="domestic-card-name">Leh-Ladakh</h3>
+            <p class="domestic-card-desc">Pangong Lake &amp; Khardung La Pass Expedition</p>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING PLANS SECTION -->
+  <section class="section-block" id="pricing">
+    <div class="section-header">
+      <h2 class="section-title">Flexible Plans</h2>
+      <p class="section-subtitle">Pick a plan tailored for individual, couple, or family travel with zero hidden
+        charges.</p>
+    </div>
+
+    <div class="pricing-grid">
+      <!-- Basic Plan -->
+      <div class="pricing-card">
+        <h3 class="plan-name">Basic Plan</h3>
+        <div class="plan-price-box">
+          <span class="plan-price">Custom Quote</span>
+          <span class="plan-unit">Based on Itinerary</span>
+        </div>
+        <p class="plan-desc">Ideal for budget-conscious travelers seeking comfortable essentials and guide assistance.
+        </p>
+        <ul class="plan-features-list">
+          <li class="plan-feature-item"><span class="check-icon">✓</span> Up to 2 members included</li>
+          <li class="plan-feature-item"><span class="check-icon">✓</span> Room Service Fees included</li>
+          <li class="plan-feature-item"><span class="check-icon">✓</span> Driver Service Fees included</li>
+          <li class="plan-feature-item"><span class="check-icon">✓</span> Tour Management & Support</li>
+          <li class="plan-feature-item"><span class="check-icon">✓</span> Destination Entrance Fees</li>
+          <li class="plan-feature-item"><span class="check-icon">✓</span> Dedicated Local Guide Fees</li>
+        </ul>
+        <button class="plan-btn open-enquiry-btn" data-package="Basic Plan Booking">Select Basic Plan</button>
+      </div>
+
+      <!-- Advanced Plan (Featured) -->
+      <div class="pricing-card featured">
+        <span class="popular-badge">Most Popular</span>
+        <h3 class="plan-name">Advanced Plan</h3>
+        <div class="plan-price-box">
+          <span class="plan-price">Custom Quote</span>
+          <span class="plan-unit">Based on Itinerary</span>
+        </div>
+        <p class="plan-desc">Great balance of premium accommodation, dedicated transport, and priority booking
+          assistance.</p>
+        <ul class="plan-features-list">
+          <li class="plan-feature-item"><span class="check-icon">✓</span> Up to 2 members included</li>
+          <li class="plan-feature-item"><span class="check-icon">✓</span> Room Service & Luxury Stays</li>
+          <li class="plan-feature-item"><span class="check-icon">✓</span> Private Chauffeur & Fuel</li>
+          <li class="plan-feature-item"><span class="check-icon">✓</span> 24/7 Priority Tour Manager</li>
+          <li class="plan-feature-item"><span class="check-icon">✓</span> All Entrance & Sightseeing Passes</li>
+          <li class="plan-feature-item"><span class="check-icon">✓</span> Auto Refresh Itinerary Updates</li>
+        </ul>
+        <button class="plan-btn open-enquiry-btn" data-package="Advanced Plan Booking">Select Advanced Plan</button>
+      </div>
+
+      <!-- Premium Plan -->
+      <div class="pricing-card">
+        <h3 class="plan-name">Premium Plan</h3>
+        <div class="plan-price-box">
+          <span class="plan-price">Custom Quote</span>
+          <span class="plan-unit">Based on Itinerary</span>
+        </div>
+        <p class="plan-desc">VIP luxury experience featuring 5-star resorts, private guides, and customized itineraries.
+        </p>
+        <ul class="plan-features-list">
+          <li class="plan-feature-item"><span class="check-icon">✓</span> Up to 2 members included</li>
+          <li class="plan-feature-item"><span class="check-icon">✓</span> 5-Star Resort & Villa Stays</li>
+          <li class="plan-feature-item"><span class="check-icon">✓</span> Executive Private Transport</li>
+          <li class="plan-feature-item"><span class="check-icon">✓</span> Dedicated Personal Concierge</li>
+          <li class="plan-feature-item"><span class="check-icon">✓</span> VIP Fast-Track Entrance Passes</li>
+          <li class="plan-feature-item"><span class="check-icon">✓</span> Complimentary Meal Upgrades</li>
+        </ul>
+        <button class="plan-btn open-enquiry-btn" data-package="Premium Plan Booking">Select Premium Plan</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== ULTRA-PREMIUM GLASSMORPHISM TESTIMONIALS SECTION ==================== -->
+  <section class="boddy-testimonials-section" id="testimonials">
+    <!-- Ambient Mesh Background & Grid -->
+    <div class="boddy-ambient-bg">
+      <div class="boddy-grid-pattern"></div>
+      <div class="boddy-glow-orb orb-1"></div>
+      <div class="boddy-glow-orb orb-2"></div>
+    </div>
+
+    <div class="boddy-container">
+      <div class="boddy-header">
+        <span class="boddy-eyebrow">REAL TRAVELER FEEDBACK</span>
+        <h2 class="boddy-title">What Our Guests Say</h2>
+        <p class="boddy-subtitle">Real experiences shared by families, honeymooners, and explorers booked through Love
+          My Tour.</p>
+      </div>
+
+      <!-- Staggered Floating Glass Card Grid -->
+      <div class="boddy-cards-grid">
+
+        <!-- Card 1 -->
+        <div class="boddy-card card-col-1 card-pos-top">
+          <div class="boddy-card-header">
+            <div class="boddy-stars">★★★★★</div>
+            <span class="boddy-verified-pill">✓ Verified Stay</span>
+          </div>
+          <p class="boddy-quote">
+            "The Kerala houseboat & Munnar tea garden tour was amazing! After only a week, our family felt so relaxed
+            and rejuvenated. Love My Tour is a complete game-changer."
+          </p>
+          <div class="boddy-footer">
+            <div class="boddy-user-info">
+              <span class="boddy-user-name">Sarah L.</span>
+              <span class="boddy-user-tag">Kerala Backwaters Escape</span>
+            </div>
+            <div class="boddy-avatar-wrap">
+              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80"
+                alt="Sarah L." class="boddy-avatar-img" onerror="this.onerror=null;this.src='dest_philippines.png';" loading="lazy" decoding="async" />
+              <span class="boddy-mic-badge">★</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="boddy-card card-col-1 card-pos-bottom">
+          <div class="boddy-card-header">
+            <div class="boddy-stars">★★★★★</div>
+            <span class="boddy-verified-pill">✓ Verified Stay</span>
+          </div>
+          <p class="boddy-quote">
+            "Highly recommend the whole Maldives package! The water villa stay with glass floor panels was noticeably
+            superior. So glad I found Love My Tour!"
+          </p>
+          <div class="boddy-footer">
+            <div class="boddy-user-info">
+              <span class="boddy-user-name">Jessica K.</span>
+              <span class="boddy-user-tag">Maldives Overwater Haven</span>
+            </div>
+            <div class="boddy-avatar-wrap">
+              <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=300&q=80"
+                alt="Jessica K." class="boddy-avatar-img" onerror="this.onerror=null;this.src='dest_indonesia.png';" loading="lazy" decoding="async" />
+              <span class="boddy-mic-badge">★</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="boddy-card card-col-2 card-pos-center">
+          <div class="boddy-card-header">
+            <div class="boddy-stars">★★★★★</div>
+            <span class="boddy-verified-pill">✓ Verified Stay</span>
+          </div>
+          <p class="boddy-quote">
+            "I've booked so many international trips, but Love My Tour is the first agency to make a real difference.
+            Loved the desert safari, dune bashing and Burj Khalifa 124th floor view!"
+          </p>
+          <div class="boddy-footer">
+            <div class="boddy-user-info">
+              <span class="boddy-user-name">Sarah L.</span>
+              <span class="boddy-user-tag">Dubai Desert & Skyline</span>
+            </div>
+            <div class="boddy-avatar-wrap">
+              <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80"
+                alt="Sarah L." class="boddy-avatar-img" onerror="this.onerror=null;this.src='dest_maldives.png';" loading="lazy" decoding="async" />
+              <span class="boddy-mic-badge">★</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="boddy-card card-col-3 card-pos-top">
+          <div class="boddy-card-header">
+            <div class="boddy-stars">★★★★★</div>
+            <span class="boddy-verified-pill">✓ Verified Stay</span>
+          </div>
+          <p class="boddy-quote">
+            "The Kashmir package is perfect for mountain lovers. Gulmarg snow cable car was breathtaking and hotel
+            service was divine. My travel stress completely vanished."
+          </p>
+          <div class="boddy-footer">
+            <div class="boddy-user-info">
+              <span class="boddy-user-name">Alex D.</span>
+              <span class="boddy-user-tag">Kashmir Snow Expedition</span>
+            </div>
+            <div class="boddy-avatar-wrap">
+              <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80"
+                alt="Alex D." class="boddy-avatar-img" onerror="this.onerror=null;this.src='island_water_bg.png';" loading="lazy" decoding="async" />
+              <span class="boddy-mic-badge">★</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="boddy-card card-col-3 card-pos-bottom">
+          <div class="boddy-card-header">
+            <div class="boddy-stars">★★★★★</div>
+            <span class="boddy-verified-pill">✓ Verified Stay</span>
+          </div>
+          <p class="boddy-quote">
+            "The Himachal package was gentle but thorough. Manali snow points felt clean without feeling rushed. It's
+            become a daily conversation staple for our family!"
+          </p>
+          <div class="boddy-footer">
+            <div class="boddy-user-info">
+              <span class="boddy-user-name">Marc T.</span>
+              <span class="boddy-user-tag">Himachal Mountain Retreat</span>
+            </div>
+            <div class="boddy-avatar-wrap">
+              <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80"
+                alt="Marc T." class="boddy-avatar-img" onerror="this.onerror=null;this.src='dest_philippines.png';" loading="lazy" decoding="async" />
+              <span class="boddy-mic-badge">★</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 6 -->
+        <div class="boddy-card card-col-2 card-pos-bottom-mid">
+          <div class="boddy-card-header">
+            <div class="boddy-stars">★★★★★</div>
+            <span class="boddy-verified-pill">✓ Verified Stay</span>
+          </div>
+          <p class="boddy-quote">
+            "The Bali private pool villa & Ubud jungle swing tour surpassed all expectations! Seamless flight transfers
+            and private driver made our honeymoon unforgettable."
+          </p>
+          <div class="boddy-footer">
+            <div class="boddy-user-info">
+              <span class="boddy-user-name">David R.</span>
+              <span class="boddy-user-tag">Bali Villa Honeymoon</span>
+            </div>
+            <div class="boddy-avatar-wrap">
+              <img src="https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=300&q=80"
+                alt="David R." class="boddy-avatar-img" onerror="this.onerror=null;this.src='dest_indonesia.png';" loading="lazy" decoding="async" />
+              <span class="boddy-mic-badge">★</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== TAILOR-MADE CUSTOMIZED TRAVEL SECTION ==================== -->
+  <section class="customized-travel-section" id="customized-holidays">
+    <div class="customized-container">
+      <div class="customized-header">
+        <span class="customized-eyebrow">✨ TAILOR-MADE BESPOKE TRAVEL</span>
+        <h2 class="customized-title">We Customize Every Tour According to Your Preferences</h2>
+        <p class="customized-subtitle">No rigid group schedules. Tell us your travel dates, preferred hotels, budget limits, and dream activities—our travel architects will curate a bespoke itinerary within minutes.</p>
+      </div>
+
+      <div class="customized-grid">
+        <!-- Feature 1 -->
+        <div class="customized-card">
+          <div class="customized-icon-wrap">🎨</div>
+          <h3 class="customized-card-title">100% Bespoke Itineraries</h3>
+          <p class="customized-card-desc">Every day-by-day plan is crafted from scratch based on your pacing, honeymoon preferences, or family needs.</p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="customized-card">
+          <div class="customized-icon-wrap">🏨</div>
+          <h3 class="customized-card-title">Handpicked Luxury Stays</h3>
+          <p class="customized-card-desc">Choose from top 4★/5★ beach resorts, overwater bungalows, heritage palaces, or mountain retreats.</p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="customized-card">
+          <div class="customized-icon-wrap">🚗</div>
+          <h3 class="customized-card-title">Private Transfers &amp; Guides</h3>
+          <p class="customized-card-desc">Enjoy private executive cabs, hassle-free airport pickups, and dedicated English-speaking local guides.</p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="customized-card">
+          <div class="customized-icon-wrap">💰</div>
+          <h3 class="customized-card-title">Flexible Plans</h3>
+          <p class="customized-card-desc">Transparent custom quotes designed to deliver maximum luxury and value within your specific budget limit.</p>
+        </div>
+      </div>
+
+      <div class="customized-action-row">
+        <a href="https://wa.me/919703700576?text=Hi,%20I%20want%20to%20customize%20a%20tour%20package%20according%20to%20my%20preferences" target="_blank" rel="noopener" class="whatsapp-direct-btn customized-whatsapp-btn">
+          💬 Request Custom Itinerary on WhatsApp
+        </a>
+      </div>
+    </div>
+  </section>
+  </div>
+
+  <!-- ==================== VIEW 2: ABOUT US PAGE ==================== -->
+  <div id="about-view" class="page-view">
+    <section class="dedicated-page-wrapper">
+      <div class="page-hero-banner">
+        <span class="page-tag">Your Journey, Our Passion</span>
+        <h1 class="page-title">Discover the World with Love My Tour</h1>
+        <p class="page-subtitle">Premium Domestic &amp; International Travel Experiences, Crafted Just for You.</p>
+      </div>
+
+      <div class="about-grid-content">
+        <div class="about-card-box">
+          <div class="about-icon">🌐</div>
+          <h3>Who We Are</h3>
+          <p>Love My Tour by Trilochan Travel Solutions is a trusted Hyderabad-based travel company specializing in
+            customized holiday packages, luxury vacations, corporate travel, honeymoon tours, family holidays, group
+            departures, flight bookings, visa assistance, hotel reservations, cruises, and complete travel
+            solutions—all designed to make every journey seamless and memorable.</p>
+        </div>
+
+        <div class="about-card-box">
+          <div class="about-icon">🏆</div>
+          <h3>Why Travel With Us?</h3>
+          <p>Whether you're planning a weekend getaway, an international vacation, a corporate retreat, or a dream
+            honeymoon, our travel experts create personalized itineraries that match your budget, interests, and
+            travel style.</p>
+        </div>
+      </div>
+
+      <div class="why-choose-section">
+        <div class="why-choose-header">
+          <span class="branches-tag">What We Offer</span>
+          <h2 class="branches-title">Why Choose Love My Tour?</h2>
+        </div>
+        <div class="why-choose-grid">
+          <div class="why-choose-item"><span class="why-choose-icon">✈️</span><span>Domestic &amp; International Tour Packages</span></div>
+          <div class="why-choose-item"><span class="why-choose-icon">🌍</span><span>Customized Holiday Planning</span></div>
+          <div class="why-choose-item"><span class="why-choose-icon">🛂</span><span>Visa Assistance &amp; Documentation</span></div>
+          <div class="why-choose-item"><span class="why-choose-icon">🏨</span><span>Premium Hotel Reservations</span></div>
+          <div class="why-choose-item"><span class="why-choose-icon">🎫</span><span>Flight Ticket Booking</span></div>
+          <div class="why-choose-item"><span class="why-choose-icon">🚢</span><span>Cruise Holidays</span></div>
+          <div class="why-choose-item"><span class="why-choose-icon">👨‍👩‍👧‍👦</span><span>Family, Group &amp; Corporate Tours</span></div>
+          <div class="why-choose-item"><span class="why-choose-icon">💎</span><span>Competitive Prices with Premium Service</span></div>
+          <div class="why-choose-item"><span class="why-choose-icon">⭐</span><span>Trusted by Thousands of Happy Travellers</span></div>
+        </div>
+      </div>
+
+      <div class="about-cta-banner">
+        <div>
+          <h2>Ready for Your Next Adventure?</h2>
+          <p>Get a Free Travel Consultation Today!</p>
+        </div>
+        <a href="https://wa.me/919703700576?text=Hi,%20I%20would%20like%20a%20free%20travel%20consultation." target="_blank" rel="noopener" class="whatsapp-direct-btn">
+          💬 Get Free Consultation
+        </a>
+      </div>
+
+      <!-- Our Branches Section -->
+      <div class="about-branches-section">
+        <div class="branches-header">
+          <span class="branches-tag">Our Locations</span>
+          <h2 class="branches-title">Operating Worldwide</h2>
+          <p class="branches-subtitle">Serving travellers across continents with local expertise and 24/7 support.</p>
+        </div>
+
+        <div class="branches-grid">
+          <!-- Hyderabad Branch -->
+          <div class="branch-card">
+            <div class="branch-icon">🇮🇳</div>
+            <h3 class="branch-name">Hyderabad Office</h3>
+            <p class="branch-role">Headquarters</p>
+            <div class="branch-details">
+              <p><strong>Karan Center, S.D Road</strong></p>
+              <p>Flat No: 119, Block C 1st Floor<br />Secunderabad, Hyderabad – 500 003<br />Telangana, India</p>
+              <p class="branch-contact"><strong>Phone:</strong> <a href="tel:+918686555506">+91 - 8686555506</a><br /><a href="tel:+918121555506">+91 - 8121555506</a><br /><strong>Email:</strong> <a href="mailto:info@lovemytour.com">info@lovemytour.com</a>
+              </p>
+            </div>
+          </div>
+
+          <!-- Bahrain Branch -->
+          <div class="branch-card">
+            <div class="branch-icon">🇧🇭</div>
+            <h3 class="branch-name">Bahrain Office</h3>
+            <p class="branch-role">International Hub</p>
+            <div class="branch-details">
+              <p><strong>Manama Center</strong></p>
+              <p>Building No. #118; Road No. #362<br />Block #304, Manama Center<br />Bahrain</p>
+              <p class="branch-contact"><strong>TRILOCHAN TRAVEL AND TOURISM W.L.L</strong><br /><strong>Phone:</strong> <a href="tel:+97333545506">+973 33545506</a><br /><strong>Email:</strong> <a href="mailto:bahrain@lovemytour.com">bahrain@lovemytour.com</a></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Company Statistics Banner -->
+      <div class="stats-counter-bar">
+        <div class="stat-item">
+          <span class="stat-num">15,000+</span>
+          <span class="stat-lbl">Happy Travelers</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-num">40+</span>
+          <span class="stat-lbl">Global Destinations</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-num">99.4%</span>
+          <span class="stat-lbl">Satisfaction Rate</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-num">24 / 7</span>
+          <span class="stat-lbl">On-Tour Support</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ==================== VIEW 3: SERVICES PAGE ==================== -->
+  <div id="services-view" class="page-view">
+    <section class="dedicated-page-wrapper">
+      <div class="page-hero-banner">
+        <span class="page-tag">World-Class Travel Assistance</span>
+        <h1 class="page-title">Our Premium Services</h1>
+        <p class="page-subtitle">Comprehensive, end-to-end travel management designed to give you complete peace of
+          mind.</p>
+      </div>
+
+      <div class="services-grid">
+        <div class="service-card">
+          <div class="service-badge">01</div>
+          <h3 class="service-title">Domestic & International Flights</h3>
+          <p class="service-desc">Instant flight bookings for domestic routes across India and international flights
+            worldwide with zero hidden fee structure and special group discounts.</p>
+          <ul class="service-list">
+            <li>• Direct Airline Partnerships</li>
+            <li>• Flexible Change & Cancellation Support</li>
+            <li>• Instant E-Ticket Issuance</li>
+            <li>• Travel Insurance</li>
+          </ul>
+        </div>
+
+        <div class="service-card">
+          <div class="service-badge">02</div>
+          <h3 class="service-title">Tailored Tour Packages</h3>
+          <p class="service-desc">Handcrafted holiday packages tailored to your budget, dates, and interests—whether for
+            romantic honeymoons, family holidays, or solo adventures.</p>
+          <ul class="service-list">
+            <li>• Custom Itinerary Builder</li>
+            <li>• Transparent Per-Night Pricing</li>
+            <li>• Guaranteed Quality Standards</li>
+          </ul>
+        </div>
+
+        <div class="service-card">
+          <div class="service-badge">03</div>
+          <h3 class="service-title">Luxury Resorts & Stays</h3>
+          <p class="service-desc">Curated accommodations ranging from 5-star overwater bungalows in the Maldives to
+            heritage houseboats in Kerala and private pool villas in Bali.</p>
+          <ul class="service-list">
+            <li>• Direct Hotel Negotiations</li>
+            <li>• Complimentary Breakfast & Upgrades</li>
+            <li>• Verified Hygiene & Comfort</li>
+          </ul>
+        </div>
+
+        <div class="service-card">
+          <div class="service-badge">04</div>
+          <h3 class="service-title">Express Visa Assistance</h3>
+          <p class="service-desc">Fast-track visa filing support for Dubai, Schengen Europe, Thailand, Malaysia,
+            Singapore, and Bali with high success rates.</p>
+          <ul class="service-list">
+            <li>• Document Verification Check</li>
+            <li>• Embassy Appointment Scheduling</li>
+            <li>• Travel Insurance Add-ons</li>
+          </ul>
+          <a href="mailto:Visa@lovemytour.com" class="service-email-link">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 4h16v16H4z" opacity="0" />
+              <path d="M4 6h16v12H4z" />
+              <path d="m4 7 8 6 8-6" />
+            </svg>
+            Visa@lovemytour.com
+          </a>
+        </div>
+
+        <div class="service-card">
+          <div class="service-badge">05</div>
+          <h3 class="service-title">Private Transport & Chauffeurs</h3>
+          <p class="service-desc">Comfortable, air-conditioned private sedans, SUVs, and luxury coaches with
+            experienced, licensed local drivers for all airport transfers and sightseeing.</p>
+          <ul class="service-list">
+            <li>• Punctual Airport Pickup</li>
+            <li>• All Fuel & Toll Expenses Included</li>
+            <li>• Clean, Sanitized Vehicles</li>
+          </ul>
+        </div>
+
+        <div class="service-card">
+          <div class="service-badge">06</div>
+          <h3 class="service-title">Licensed Local Tour Guides</h3>
+          <p class="service-desc">Friendly, multilingual local guides stationed in every destination to provide rich
+            cultural insights, hidden gem recommendations, and safe travel assistance.</p>
+          <ul class="service-list">
+            <li>• Certified Regional Experts</li>
+            <li>• VIP Sightseeing Passes</li>
+            <li>• 24/7 On-Ground Support</li>
+          </ul>
+        </div>
+
+        <div class="service-card">
+          <div class="service-badge">07</div>
+          <h3 class="service-title">Travel Insurance</h3>
+          <p class="service-desc">Comprehensive travel insurance covering trip cancellations, medical emergencies, lost baggage, and flight delays for total peace of mind.</p>
+          <ul class="service-list">
+            <li>• Instant Coverage Setup</li>
+            <li>• 24/7 Global Assistance</li>
+            <li>• Zero Deductible Options</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ==================== VIEW 4: CONTACT US PAGE ==================== -->
+  <div id="contact-view" class="page-view">
+    <section class="dedicated-page-wrapper">
+      <div class="page-hero-banner">
+        <span class="page-tag">We are here to help</span>
+        <h1 class="page-title">Get in Touch with Travel Desk</h1>
+        <p class="page-subtitle">Have questions or ready to book your next trip? Reach out to our Secunderabad office or
+          drop an enquiry online.</p>
+      </div>
+
+      <div class="contact-page-grid">
+        <!-- Info Column -->
+        <div class="contact-card-box">
+          <h2 class="contact-box-title">Office Headquarters</h2>
+          <p class="contact-box-sub">Visit or contact our team directly for instant quotes and customized holiday
+            planning.</p>
+
+          <div class="contact-detail-row">
+            <span class="contact-icon-bubble">📞</span>
+            <div>
+              <strong>Phone Numbers</strong>
+              <p>+91 - 8686555506 | +91 - 8121555506</p>
+            </div>
+          </div>
+
+          <div class="contact-detail-row">
+            <span class="contact-icon-bubble">✉️</span>
+            <div>
+              <strong>Email Address</strong>
+              <p><a href="mailto:info@lovemytour.com">info@lovemytour.com</a></p>
+            </div>
+          </div>
+
+          <div class="contact-detail-row">
+            <span class="contact-icon-bubble">📍</span>
+            <div>
+              <strong>Secunderabad Office Address</strong>
+              <p>Flat No: 119, Block C First Floor, Karan Center, S.D Road, Secunderabad, Hyderabad – 500 003,
+                Telangana, India.</p>
+            </div>
+          </div>
+
+          <div class="contact-detail-row">
+            <span class="contact-icon-bubble">⏰</span>
+            <div>
+              <strong>Working Hours</strong>
+              <p>Monday to Saturday: 9:30 AM – 8:30 PM</p>
+              <p>Sunday: 10:00 AM – 4:00 PM (On Call Support)</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Contact Form -->
+        <div class="contact-card-box">
+          <h2 class="contact-box-title">Send Us a Direct Message</h2>
+          <!-- Submits straight to WhatsApp as a formatted enquiry (script.js) -->
+          <form class="enquiry-form" id="contactPageForm">
+            <div class="input-group">
+              <label for="contact-name">Your Full Name *</label>
+              <div class="input-field">
+                <input type="text" id="contact-name" placeholder="Rahul Sharma" required />
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label for="contact-phone">Phone Number *</label>
+              <div class="input-field">
+                <input type="tel" id="contact-phone" placeholder="+91 9876543210" required />
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label for="contact-destination">Preferred Destination</label>
+              <div class="input-field">
+                <input type="text" id="contact-destination" placeholder="e.g. Bali, Andaman, Dubai, Kashmir..." />
+              </div>
+            </div>
+
+            <div class="input-group textarea-field">
+              <label for="contact-msg">Message / Travel Details</label>
+              <textarea id="contact-msg"
+                placeholder="Tell us your tentative travel dates, group size, and budget..."></textarea>
+            </div>
+
+            <button type="submit" class="submit-enquiry-btn">Submit Contact Enquiry</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ==================== VIEW 4B: CAREERS PAGE ==================== -->
+  <div id="careers-view" class="page-view">
+    <section class="dedicated-page-wrapper">
+      <div class="page-hero-banner">
+        <span class="page-tag">We're Hiring in Hyderabad</span>
+        <h1 class="page-title">Build Your Career in Travel</h1>
+        <p class="page-subtitle">Join the Love My Tour team and help 15,000+ travellers a year discover the world.
+          Real ownership, uncapped incentives, and a desk right in the middle of Secunderabad.</p>
+      </div>
+
+      <!-- Open positions -->
+      <div class="careers-section-head">
+        <span class="careers-section-tag">Current Openings</span>
+        <h2 class="careers-section-title">6 Positions Open</h2>
+        <p class="careers-section-sub">Don't see an exact match? Apply anyway under "Other / General Application" —
+          we hire for attitude as often as for experience.</p>
+      </div>
+
+      <div class="careers-jobs-list" id="careersJobsList">
+
+        <article class="career-job-card">
+          <div class="career-job-main">
+            <div class="career-job-top">
+              <h3 class="career-job-title">Travel Sales Consultant — Outbound Holidays</h3>
+              <span class="career-job-badge career-job-badge-hot">Urgent</span>
+            </div>
+            <div class="career-job-meta">
+              <span>📍 Secunderabad, Hyderabad</span>
+              <span>🕒 Full-time</span>
+              <span>💼 1–4 years</span>
+              <span>💰 ₹2.4–4.8 LPA + incentives</span>
+            </div>
+            <p class="career-job-desc">Own international holiday enquiries end to end — understand the customer, cost
+              the itinerary, quote it, negotiate and close. You will work with our DMC partners across Bali, Dubai,
+              Thailand, Singapore, Europe and the Maldives.</p>
+            <ul class="career-job-skills">
+              <li>Outbound package sales</li>
+              <li>Itinerary costing</li>
+              <li>Fluent English &amp; Hindi / Telugu</li>
+              <li>CRM follow-ups</li>
+            </ul>
+          </div>
+          <div class="career-job-action">
+            <button type="button" class="career-apply-btn"
+              data-role="Travel Sales Consultant — Outbound Holidays">Apply Now</button>
+          </div>
+        </article>
+
+        <article class="career-job-card">
+          <div class="career-job-main">
+            <div class="career-job-top">
+              <h3 class="career-job-title">Domestic Holiday Package Executive</h3>
+            </div>
+            <div class="career-job-meta">
+              <span>📍 Secunderabad, Hyderabad</span>
+              <span>🕒 Full-time</span>
+              <span>💼 0–3 years (freshers welcome)</span>
+              <span>💰 ₹1.8–3.6 LPA + incentives</span>
+            </div>
+            <p class="career-job-desc">Handle Andaman, Kashmir, Kerala, Goa, Himachal and North-East enquiries. Build
+              day-wise itineraries, block hotels and coordinate with our on-ground transport partners.</p>
+            <ul class="career-job-skills">
+              <li>Domestic destination knowledge</li>
+              <li>Hotel &amp; transport coordination</li>
+              <li>Excel / Google Sheets</li>
+              <li>Customer follow-up</li>
+            </ul>
+          </div>
+          <div class="career-job-action">
+            <button type="button" class="career-apply-btn" data-role="Domestic Holiday Package Executive">Apply
+              Now</button>
+          </div>
+        </article>
+
+        <article class="career-job-card">
+          <div class="career-job-main">
+            <div class="career-job-top">
+              <h3 class="career-job-title">Air Ticketing Executive (Amadeus / Galileo)</h3>
+            </div>
+            <div class="career-job-meta">
+              <span>📍 Secunderabad, Hyderabad</span>
+              <span>🕒 Full-time</span>
+              <span>💼 1–5 years</span>
+              <span>💰 ₹2.4–4.2 LPA</span>
+            </div>
+            <p class="career-job-desc">Issue, reissue and cancel domestic and international tickets. Manage fare rules,
+              group fares, airline refunds and schedule-change communication with travellers.</p>
+            <ul class="career-job-skills">
+              <li>Amadeus or Galileo GDS</li>
+              <li>Fare construction</li>
+              <li>Refunds &amp; reissues</li>
+              <li>Attention to detail</li>
+            </ul>
+          </div>
+          <div class="career-job-action">
+            <button type="button" class="career-apply-btn"
+              data-role="Air Ticketing Executive (Amadeus / Galileo)">Apply Now</button>
+          </div>
+        </article>
+
+        <article class="career-job-card">
+          <div class="career-job-main">
+            <div class="career-job-top">
+              <h3 class="career-job-title">Visa &amp; Tour Operations Coordinator</h3>
+            </div>
+            <div class="career-job-meta">
+              <span>📍 Secunderabad, Hyderabad</span>
+              <span>🕒 Full-time</span>
+              <span>💼 1–3 years</span>
+              <span>💰 ₹2.1–3.6 LPA</span>
+            </div>
+            <p class="career-job-desc">Own the paperwork that makes a trip happen — visa files, insurance, forex
+              referrals, vouchers and pre-departure kits — and stay reachable while groups are on tour.</p>
+            <ul class="career-job-skills">
+              <li>Visa documentation</li>
+              <li>Vendor coordination</li>
+              <li>Voucher &amp; ticket dispatch</li>
+              <li>Calm under pressure</li>
+            </ul>
+          </div>
+          <div class="career-job-action">
+            <button type="button" class="career-apply-btn" data-role="Visa &amp; Tour Operations Coordinator">Apply
+              Now</button>
+          </div>
+        </article>
+
+        <article class="career-job-card">
+          <div class="career-job-main">
+            <div class="career-job-top">
+              <h3 class="career-job-title">Digital Marketing Executive</h3>
+              <span class="career-job-badge">New</span>
+            </div>
+            <div class="career-job-meta">
+              <span>📍 Secunderabad, Hyderabad</span>
+              <span>🕒 Full-time</span>
+              <span>💼 1–3 years</span>
+              <span>💰 ₹2.4–4.2 LPA</span>
+            </div>
+            <p class="career-job-desc">Run our Meta and Google campaigns, keep the Instagram grid alive with real trip
+              footage, and turn WhatsApp enquiries into a measurable pipeline.</p>
+            <ul class="career-job-skills">
+              <li>Meta &amp; Google Ads</li>
+              <li>Reels / short-form editing</li>
+              <li>SEO basics</li>
+              <li>Analytics reporting</li>
+            </ul>
+          </div>
+          <div class="career-job-action">
+            <button type="button" class="career-apply-btn" data-role="Digital Marketing Executive">Apply Now</button>
+          </div>
+        </article>
+
+        <article class="career-job-card">
+          <div class="career-job-main">
+            <div class="career-job-top">
+              <h3 class="career-job-title">Customer Support Executive — On-Tour Desk</h3>
+            </div>
+            <div class="career-job-meta">
+              <span>📍 Secunderabad, Hyderabad</span>
+              <span>🕒 Full-time · rotational shifts</span>
+              <span>💼 0–2 years</span>
+              <span>💰 ₹1.8–3.0 LPA + shift allowance</span>
+            </div>
+            <p class="career-job-desc">Be the voice travellers reach when they are already abroad. Handle WhatsApp and
+              call support, resolve hotel or transfer issues, and escalate fast when it matters.</p>
+            <ul class="career-job-skills">
+              <li>Spoken English &amp; Hindi</li>
+              <li>WhatsApp / call support</li>
+              <li>Problem solving</li>
+              <li>Shift flexibility</li>
+            </ul>
+          </div>
+          <div class="career-job-action">
+            <button type="button" class="career-apply-btn" data-role="Customer Support Executive — On-Tour Desk">Apply
+              Now</button>
+          </div>
+        </article>
+
+      </div>
+
+      <!-- Application form -->
+      <div class="careers-apply-wrap" id="careersApplyForm">
+        <div class="careers-apply-intro">
+          <span class="careers-section-tag">Apply Now</span>
+          <h2 class="careers-section-title">Send Us Your Application</h2>
+          <p class="careers-section-sub">Fill this in and it opens WhatsApp with your details already written out —
+            just press send, then attach your CV in the same chat.</p>
+
+          <div class="careers-apply-alt">
+            <p><strong>Prefer email?</strong> Send your CV to
+              <a href="mailto:info@lovemytour.com?subject=Job%20Application%20—%20Love%20My%20Tour">info@lovemytour.com</a>
+              with the role in the subject line.</p>
+            <p><strong>Walk-in:</strong> Monday to Saturday, 11:00 AM – 5:00 PM at Flat No: 119, Block C First Floor,
+              Karan Center, S.D Road, Secunderabad – 500 003.</p>
+          </div>
+        </div>
+
+        <div class="contact-card-box careers-form-box">
+          <!-- Submits straight to WhatsApp as a formatted application (script.js) -->
+          <form class="enquiry-form" id="careersForm">
+            <div class="enquiry-grid">
+              <div class="input-group">
+                <label for="career-name">Full Name *</label>
+                <div class="input-field">
+                  <input type="text" id="career-name" placeholder="e.g. Rahul Verma" required />
+                </div>
+              </div>
+              <div class="input-group">
+                <label for="career-phone">Phone Number *</label>
+                <div class="input-field">
+                  <input type="tel" id="career-phone" placeholder="+91 9876543210" required />
+                </div>
+              </div>
+            </div>
+
+            <div class="enquiry-grid">
+              <div class="input-group">
+                <label for="career-email">Email Address *</label>
+                <div class="input-field">
+                  <input type="email" id="career-email" placeholder="name@example.com" required />
+                </div>
+              </div>
+              <div class="input-group">
+                <label for="career-role">Position Applying For *</label>
+                <div class="input-field">
+                  <select id="career-role" required>
+                    <option value="Travel Sales Consultant — Outbound Holidays">Travel Sales Consultant — Outbound
+                      Holidays</option>
+                    <option value="Domestic Holiday Package Executive">Domestic Holiday Package Executive</option>
+                    <option value="Air Ticketing Executive (Amadeus / Galileo)">Air Ticketing Executive (Amadeus /
+                      Galileo)</option>
+                    <option value="Visa &amp; Tour Operations Coordinator">Visa &amp; Tour Operations Coordinator
+                    </option>
+                    <option value="Digital Marketing Executive">Digital Marketing Executive</option>
+                    <option value="Customer Support Executive — On-Tour Desk">Customer Support Executive — On-Tour Desk
+                    </option>
+                    <option value="Other / General Application">Other / General Application</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="enquiry-grid">
+              <div class="input-group">
+                <label for="career-experience">Total Experience</label>
+                <div class="input-field">
+                  <input type="text" id="career-experience" placeholder="e.g. 2 years 6 months / Fresher" />
+                </div>
+              </div>
+              <div class="input-group">
+                <label for="career-location">Current City</label>
+                <div class="input-field">
+                  <input type="text" id="career-location" placeholder="e.g. Hyderabad" />
+                </div>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label for="career-resume">Resume Link (Google Drive / LinkedIn)</label>
+              <div class="input-field">
+                <input type="url" id="career-resume" placeholder="https://drive.google.com/..." />
+              </div>
+            </div>
+
+            <div class="input-group textarea-field">
+              <label for="career-note">Why you'd be a good fit</label>
+              <textarea id="career-note"
+                placeholder="Tell us about your travel-industry experience, notice period, and expected salary..."></textarea>
+            </div>
+
+            <button type="submit" class="submit-enquiry-btn">Send Application on WhatsApp</button>
+            <p class="careers-form-note">No CV link handy? Submit anyway and attach the file in the WhatsApp chat that
+              opens.</p>
+          </form>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ==================== VIEW 5: DYNAMIC CATEGORY PAGE ==================== -->
+  <div id="category-view" class="page-view">
+    <section class="dedicated-page-wrapper">
+      <div id="categoryHeaderContainer">
+        <!-- Dynamic destination category hero rendered via JavaScript -->
+      </div>
+
+      <div class="packages-grid" id="categoryPackagesGrid">
+        <!-- Dynamic package cards injected via JavaScript -->
+      </div>
+    </section>
+  </div>
+
+  <!-- ==================== VIEW 6: SUPER PREMIUM PACKAGE DETAIL INSIDE PAGE ==================== -->
+  <div id="package-detail-view" class="page-view">
+    <section class="dedicated-page-wrapper" id="packageDetailContainer">
+      <!-- Dynamic super premium package inside page loaded via JS -->
+    </section>
+  </div>
+
+  <!-- INTERACTIVE ENQUIRY MODAL -->
+  <div class="modal-overlay" id="enquiryModal">
+    <div class="modal-box">
+      <button class="close-modal-btn" id="closeModalBtn" aria-label="Close enquiry modal">&times;</button>
+      <h3 class="modal-title">Plan Your Next Journey</h3>
+      <p class="modal-subtitle">Fill in your details below and our Hyderabad travel desk will contact you with custom
+        discount pricing.</p>
+
+      <form class="enquiry-form" id="enquiryForm">
+        <div class="enquiry-grid">
+          <div class="input-group">
+            <label for="enquiry-name">Full Name *</label>
+            <div class="input-field">
+              <input type="text" id="enquiry-name" placeholder="e.g. Rahul Verma" required />
+            </div>
+          </div>
+          <div class="input-group">
+            <label for="enquiry-phone">Phone Number *</label>
+            <div class="input-field">
+              <input type="tel" id="enquiry-phone" placeholder="+91 9876543210" required />
+            </div>
+          </div>
+        </div>
+
+        <div class="enquiry-grid">
+          <div class="input-group">
+            <label for="enquiry-email">Email Address</label>
+            <div class="input-field">
+              <input type="email" id="enquiry-email" placeholder="name@example.com" />
+            </div>
+          </div>
+          <div class="input-group">
+            <label for="enquiry-package">Selected Destination / Package</label>
+            <div class="input-field">
+              <input type="text" id="enquiry-package" value="General Travel Enquiry" />
+            </div>
+          </div>
+        </div>
+
+        <div class="input-group textarea-field">
+          <label for="enquiry-message">Special Requirements / Travel Dates</label>
+          <textarea id="enquiry-message"
+            placeholder="Tell us your preferred dates, number of travelers, budget, or flight requirements..."></textarea>
+        </div>
+
+        <button type="submit" class="submit-enquiry-btn">Send Booking Enquiry</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== VIEW: 7 CONTINENTS DEDICATED PAGE ==================== -->
+  <div id="continents-view" class="page-view">
+    <!-- Full-Screen Hero Section with World Landmark Slideshow -->
+    <section class="continents-hero">
+      <div class="continents-hero-bg-slider">
+        <div class="continents-hero-slide active" style="background-image: url('assets/packages-images/heritage-vietnam-halong.jpg');"></div>
+        <div class="continents-hero-slide" style="background-image: url('assets/packages-images/safari-norway-real.jpg');"></div>
+        <div class="continents-hero-slide" style="background-image: url('assets/packages-images/safari-africa-mara.jpg');"></div>
+        <div class="continents-hero-slide" style="background-image: url('https://images.unsplash.com/photo-1526392060635-9d6019884377?auto=format&fit=crop&w=1600&q=85');"></div>
+        <div class="continents-hero-slide" style="background-image: url('assets/packages-images/safari-australia-croc.jpg');"></div>
+        <div class="continents-hero-overlay"></div>
+      </div>
+
+      <div class="continents-hero-content">
+        <span class="continents-badge">🌐 7 Wonders of the Earth</span>
+        <h1 class="continents-hero-title">Explore the World by Continent</h1>
+        <p class="continents-hero-subtitle">Discover handpicked tourist destinations across Asia, Africa, North America, South America, Antarctica, Europe, and Australia.</p>
+        <div class="continents-quick-nav">
+          <a href="#continents/asia" class="continent-pill-btn">Asia</a>
+          <a href="#continents/africa" class="continent-pill-btn">Africa</a>
+          <a href="#continents/north-america" class="continent-pill-btn">North America</a>
+          <a href="#continents/south-america" class="continent-pill-btn">South America</a>
+          <a href="#continents/antarctica" class="continent-pill-btn">Antarctica</a>
+          <a href="#continents/europe" class="continent-pill-btn">Europe</a>
+          <a href="#continents/australia" class="continent-pill-btn">Australia</a>
+        </div>
+
+        <!-- Live search — glass search-box style (class shared with other site
+             search boxes); results drop down below the box and clicking one
+             goes straight to that country's page (no scrolling through the
+             marquee rows) -->
+        <div class="continents-search-wrap" id="continentsSearchWrap">
+          <div class="spiritual-search-box continents-search-box" id="continentsSearchBox">
+            <svg class="country-search-icon" viewBox="0 0 24 24" width="20" height="20" fill="none"
+              stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            <input type="text" id="continentsSearchInput" class="country-search-input"
+              placeholder="Search a country or destination… e.g. Bali, Switzerland, Kenya"
+              aria-label="Search continents and destinations" autocomplete="off" />
+          </div>
+          <div class="continents-search-results" id="continentsSearchResults" hidden></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Divided Continent Sections Container (Rendered Dynamically from continentsData) -->
+    <div class="continents-body-container" id="continentsBodyContainer"></div>
+  </div>
+
+  <!-- SITE FOOTER & CONTACT INFO -->
+  <footer class="site-footer" id="contact-footer">
+    <div class="footer-top">
+      <div class="footer-col">
+        <h3 class="footer-brand-title">Love My Tour</h3>
+        <p class="footer-brand-desc">Love My Tour by Trilochan Travel Solutions is a trusted Hyderabad-based travel
+          company crafting customized holiday packages, luxury vacations, corporate travel, honeymoon tours, family
+          holidays, group departures, flight bookings, visa assistance, hotel reservations, cruises, and complete
+          travel solutions—all designed to make every journey seamless and memorable.</p>
+
+        <div class="newsletter-box">
+          <input type="email" class="newsletter-input" placeholder="Enter your email for deals..." />
+          <button class="newsletter-btn">Subscribe</button>
+        </div>
+      </div>
+
+      <div class="footer-col">
+        <h4 class="footer-heading">Quick Links</h4>
+        <ul class="footer-links-list">
+          <li class="footer-link-item"><a href="#home">Home Flight Booking</a></li>
+          <li class="footer-link-item"><a href="#about">About Us</a></li>
+          <li class="footer-link-item"><a href="#services">Our Services</a></li>
+          <li class="footer-link-item"><a href="#pricing">Pricing Plans</a></li>
+          <li class="footer-link-item"><a href="#careers">Careers <span class="footer-hiring-tag">Hiring</span></a>
+          </li>
+          <li class="footer-link-item"><a href="#contact">Contact Agency</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4 class="footer-heading">Contact Agency</h4>
+        <div class="contact-info-list">
+          <div class="contact-info-item">
+            <span>📞</span>
+            <div>
+              <strong>+91 - 8686555506</strong><br />
+              +91 - 8121555506
+            </div>
+          </div>
+          <div class="contact-info-item">
+            <span>✉️</span>
+            <div>
+              <a href="mailto:info@lovemytour.com" style="color:#94a3b8; text-decoration:none;">info@lovemytour.com</a>
+            </div>
+          </div>
+          <div class="contact-info-item">
+            <span>📍</span>
+            <div>
+              <strong>Hyderabad Office</strong><br />
+              Flat No: 119, Block C 1st Floor, Karan Center, S.D Road, Secunderabad, Hyderabad – 500 003<br />
+              <strong>Phone:</strong> <a href="tel:+918686555506">+91 - 8686555506</a> |
+              <strong>Email:</strong> <a href="mailto:info@lovemytour.com">info@lovemytour.com</a>
+            </div>
+          </div>
+          <div class="contact-info-item">
+            <span>📍</span>
+            <div>
+              <strong>Bahrain Office (TRILOCHAN TRAVEL AND TOURISM W.L.L)</strong><br />
+              Building No. #118; Road No. #362; Block #304; Manama Center, Bahrain<br />
+              <strong>Phone:</strong> <a href="tel:+97333545506">+973 33545506</a> |
+              <strong>Email:</strong> <a href="mailto:bahrain@lovemytour.com">bahrain@lovemytour.com</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© 2026 Love My Tour (Trilochan Travel Solutions). All rights reserved.</p>
+      <div class="social-links">
+        <a href="#" class="social-icon" title="Facebook">FB</a>
+        <a href="#" class="social-icon" title="Twitter">TW</a>
+        <a href="#" class="social-icon" title="LinkedIn">LN</a>
+        <a href="https://wa.me/919703700576" target="_blank" rel="noopener" class="social-icon"
+          title="WhatsApp">WA</a>
+        <a href="#" class="social-icon" title="Instagram">IG</a>
+        <a href="#" class="social-icon" title="YouTube">YT</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==================== INTERACTIVE TRAVEL AI CHATBOT WIDGET ==================== -->
+  <div class="travel-ai-widget" id="travelAiWidget">
+    <!-- WhatsApp shortcut — sits directly on top of the chatbot launcher and
+         opens a real WhatsApp chat (wa.me) in a new tab. Always visible. -->
+    <a href="https://wa.me/919703700576?text=Hi,%20I%20would%20like%20to%20plan%20a%20trip%20with%20Love%20My%20Tour"
+      target="_blank" rel="noopener" class="wa-float-btn" id="waFloatBtn" aria-label="Chat with us on WhatsApp"
+      title="Chat on WhatsApp">
+      <svg viewBox="0 0 32 32" width="30" height="30" fill="currentColor" aria-hidden="true">
+        <path
+          d="M16.02 3.2c-7.07 0-12.8 5.73-12.8 12.8 0 2.26.59 4.46 1.72 6.4L3.2 28.8l6.56-1.71a12.75 12.75 0 0 0 6.26 1.63h.01c7.06 0 12.8-5.74 12.8-12.8 0-3.42-1.33-6.63-3.75-9.05a12.7 12.7 0 0 0-9.06-3.75zm0 23.03h-.01a10.6 10.6 0 0 1-5.4-1.48l-.39-.23-4.02 1.05 1.07-3.92-.25-.4a10.6 10.6 0 0 1-1.63-5.66c0-5.87 4.78-10.64 10.65-10.64 2.84 0 5.51 1.11 7.52 3.12a10.57 10.57 0 0 1 3.11 7.53c0 5.87-4.78 10.63-10.65 10.63zm5.84-7.97c-.32-.16-1.89-.93-2.18-1.04-.29-.11-.5-.16-.72.16-.21.32-.82 1.04-1 1.25-.19.21-.37.24-.69.08-.32-.16-1.35-.5-2.57-1.59-.95-.85-1.59-1.89-1.78-2.21-.19-.32-.02-.5.14-.66.15-.14.32-.37.48-.56.16-.19.21-.32.32-.53.11-.21.05-.4-.03-.56-.08-.16-.72-1.73-.98-2.37-.26-.62-.52-.54-.72-.55l-.61-.01c-.21 0-.56.08-.85.4-.29.32-1.11 1.09-1.11 2.66s1.14 3.08 1.3 3.29c.16.21 2.24 3.42 5.43 4.8.76.33 1.35.52 1.81.67.76.24 1.45.21 2 .13.61-.09 1.89-.77 2.15-1.52.27-.75.27-1.38.19-1.52-.08-.13-.29-.21-.61-.37z" />
+      </svg>
+      <span class="wa-float-label">Chat on WhatsApp</span>
+    </a>
+
+    <!-- Floating Widget Launcher Badge -->
+    <button type="button" class="travel-ai-launcher" id="travelAiLauncher" aria-label="Open Travel Assistant">
+      <span class="ai-launcher-icon">
+        <svg viewBox="0 0 100 100" width="56" height="56" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="50" fill="#ffffff" />
+          <ellipse cx="50" cy="82" rx="18" ry="6" fill="#e0e7ff" />
+          <path d="M 40 70 L 60 70 L 55 82 L 45 82 Z" fill="#e0e7ff" />
+          <rect x="20" y="42" width="12" height="18" rx="6" fill="#818cf8" />
+          <rect x="68" y="42" width="12" height="18" rx="6" fill="#818cf8" />
+          <rect x="47" y="18" width="6" height="15" fill="#818cf8" />
+          <circle cx="50" cy="15" r="6" fill="#818cf8" />
+          <rect x="25" y="30" width="50" height="42" rx="14" fill="#0b0f19" />
+          <circle cx="38" cy="48" r="4.5" fill="#ffffff" />
+          <circle cx="62" cy="48" r="4.5" fill="#ffffff" />
+          <path d="M 42 58 Q 50 66 58 58" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" />
+        </svg>
+      </span>
+    </button>
+
+    <!-- Chatbot Window Panel -->
+    <div class="travel-ai-window" id="travelAiWindow" aria-hidden="true">
+      <!-- Chatbot Header -->
+      <div class="travel-ai-header">
+        <div class="travel-ai-avatar">
+          <svg viewBox="0 0 100 100" width="34" height="34" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="50" fill="#ffffff" />
+            <ellipse cx="50" cy="82" rx="18" ry="6" fill="#e0e7ff" />
+            <path d="M 40 70 L 60 70 L 55 82 L 45 82 Z" fill="#e0e7ff" />
+            <rect x="20" y="42" width="12" height="18" rx="6" fill="#818cf8" />
+            <rect x="68" y="42" width="12" height="18" rx="6" fill="#818cf8" />
+            <rect x="47" y="18" width="6" height="15" fill="#818cf8" />
+            <circle cx="50" cy="15" r="6" fill="#818cf8" />
+            <rect x="25" y="30" width="50" height="42" rx="14" fill="#0b0f19" />
+            <circle cx="38" cy="48" r="4.5" fill="#ffffff" />
+            <circle cx="62" cy="48" r="4.5" fill="#ffffff" />
+            <path d="M 42 58 Q 50 66 58 58" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" />
+          </svg>
+        </div>
+        <div class="travel-ai-header-title">
+          <h3>Love My Tour Captain</h3>
+          <p>Your Personal AI Assistant</p>
+        </div>
+        <button type="button" class="travel-ai-close-btn" id="travelAiClose" aria-label="Close Chatbot">✕</button>
+      </div>
+
+      <!-- Chatbot Conversation Body -->
+      <div class="travel-ai-body" id="travelAiBody">
+        <div class="chat-message bot-message">
+          <div class="bot-avatar-mini">
+            <svg viewBox="0 0 100 100" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="50" cy="50" r="50" fill="#ffffff" />
+              <ellipse cx="50" cy="82" rx="18" ry="6" fill="#e0e7ff" />
+              <path d="M 40 70 L 60 70 L 55 82 L 45 82 Z" fill="#e0e7ff" />
+              <rect x="20" y="42" width="12" height="18" rx="6" fill="#818cf8" />
+              <rect x="68" y="42" width="12" height="18" rx="6" fill="#818cf8" />
+              <rect x="47" y="18" width="6" height="15" fill="#818cf8" />
+              <circle cx="50" cy="15" r="6" fill="#818cf8" />
+              <rect x="25" y="30" width="50" height="42" rx="14" fill="#0b0f19" />
+              <circle cx="38" cy="48" r="4.5" fill="#ffffff" />
+              <circle cx="62" cy="48" r="4.5" fill="#ffffff" />
+              <path d="M 42 58 Q 50 66 58 58" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" />
+            </svg>
+          </div>
+          <div class="message-bubble">
+            Hello! I am your <strong>Love My Tour Captain</strong>. ✈️<br/>
+            How can I assist you with your holiday plans today? Select a quick option below or type a question!
+          </div>
+        </div>
+
+        <div class="chat-quick-buttons" id="chatQuickButtons">
+          <button type="button" class="quick-btn" data-query="packages">✈️ Popular Packages</button>
+          <button type="button" class="quick-btn" data-query="domestic">🏝️ Custom India Tours</button>
+          <button type="button" class="quick-btn" data-query="continents">🌍 7 Continents Tours</button>
+          <button type="button" class="quick-btn" data-query="contact">📞 Direct WhatsApp Enquiry</button>
+        </div>
+      </div>
+
+      <!-- Chatbot Input Footer -->
+      <div class="travel-ai-footer">
+        <input type="text" id="chatInput" placeholder="Ask Love My Tour Captain..." autocomplete="off" />
+        <button type="button" id="chatSendBtn" aria-label="Send Message">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="script.js"></script>
+
+  <!-- closes .app-container, opened at the top of the page -->
+  </div>
+</body>
+
+</html>
+
+
+
+

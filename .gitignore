@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+
+# Orphaned duplicate of the root assets/ and "background video/" folders —
+# stale pre-fix copies (old spaced/wrongly-cased filenames, uncompressed
+# PNGs) that nothing in the code actually references. Kept on disk in case
+# they're needed for reference, but not worth tracking or pushing (~66MB of
+# dead weight). Vite's public/_redirects and public/netlify.toml stay
+# tracked since those are genuinely used (copied verbatim into dist/ for
+# Netlify hosting).
+public/assets/
+public/background video/
+public/aeroplane.png
+public/cloud_curve_panel.png
+public/cloud_transparent.png
