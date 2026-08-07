@@ -537,7 +537,17 @@ body {
   display: none;
 }
 
-/* Universal Marquee Wrapper for Seamless Infinite Auto-Scroll */
+/* Universal Marquee Wrapper for Seamless Infinite Auto-Scroll.
+   Motion is driven entirely by JS (initDraggableMarquees in script.js) via
+   requestAnimationFrame — not a CSS @keyframes animation. iOS WebKit has a
+   documented history (RC-3/RC-4 elsewhere in this file) of silently pausing
+   or dropping long-running CSS animations, which is exactly what caused the
+   Global Safari rows to appear to "stop" scrolling after a while on iPhone.
+   A JS-driven position value that wraps via modulo arithmetic every frame
+   has no animation-iteration-count or animation-play-state for WebKit to
+   lose track of — it cannot "end." This also lets the same code path
+   support drag-to-scroll (mouse + touch) directly, instead of needing a
+   separate pause-on-touch mechanism bolted on top. */
 .marquee-inner {
   display: flex !important;
   flex-direction: row !important;
@@ -545,33 +555,14 @@ body {
   width: max-content !important;
   will-change: transform !important;
   flex-shrink: 0 !important;
-  animation: marquee-left 32s linear infinite !important;
 }
 
-/* Explicit reverse keyframe instead of the shorthand's `reverse` direction
-   keyword — see the mobile @media block's RC-3 FIX comment on
-   @keyframes marquee-right for why animation-direction:reverse breaks on iOS
-   WebKit (misreads the reversed start frame as "off-screen", collapsing the
-   row to 0 height). This used to only be fixed in the mobile-only override
-   below, leaving this base rule — which also applies at every other screen
-   width — on the broken pattern. Both rules now agree unconditionally. */
-.marquee-reverse {
-  animation: marquee-right 32s linear infinite !important;
+.cards-grid {
+  cursor: grab;
 }
 
-@keyframes marquee-left {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-@keyframes marquee-right {
-  0%   { transform: translateX(-50%); }
-  100% { transform: translateX(0%); }
-}
-
-.cards-grid:hover .marquee-inner,
-.cards-grid.paused .marquee-inner {
-  animation-play-state: paused !important;
+.cards-grid:active {
+  cursor: grabbing;
 }
 
 
@@ -1902,26 +1893,13 @@ body {
     min-width: max-content !important;
     will-change: transform !important;
     flex-shrink: 0 !important;
-    animation: marquee-left 32s linear infinite !important;
-    /* Force this element onto its own GPU compositing layer — prevents iOS Safari
-       from dropping the layer after ~30s of animation, which was causing the
-       stacking context of child elements to reset (RC-4 root). */
+    /* Kept for GPU compositing quality even though motion is now JS-driven
+       (see the base .marquee-inner rule near the top of this file for why
+       there's no `animation:` property here anymore). */
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
     backface-visibility: hidden !important;
     -webkit-backface-visibility: hidden !important;
-  }
-
-  /* .marquee-reverse and @keyframes marquee-left/marquee-right are now
-     defined once, unconditionally, near the top of this file — no need to
-     redeclare them per breakpoint (that duplication was itself the source
-     of a bug: the old unscoped base rule and this mobile override disagreed
-     with each other). */
-
-  /* Pause on touch/hover */
-  .cards-grid:hover .marquee-inner,
-  .cards-grid.paused .marquee-inner {
-    animation-play-state: paused !important;
   }
 
   /* Legacy rule — keep for fallback only, no animation */
@@ -5775,7 +5753,7 @@ body {
   width: 100%;
   overflow: hidden;
   padding: 8px 0 24px 0;
-  /* Allow pause on hover */
+  cursor: grab;
   /* Same fix as the Global Safari marquee's .cards-grid (see styles.css
      RC-3 FIX comment there): promotes the clipping container to its own GPU
      layer so iOS Safari reliably measures the max-content child's width on
@@ -5784,8 +5762,8 @@ body {
   transform: translateZ(0);
 }
 
-.continent-marquee-wrapper:hover .continent-marquee-track {
-  animation-play-state: paused;
+.continent-marquee-wrapper:active {
+  cursor: grabbing;
 }
 
 .continent-marquee-track {
@@ -5795,35 +5773,16 @@ body {
   min-width: max-content;
   padding: 0 20px;
   will-change: transform;
-  animation: continent-auto-scroll 40s linear infinite;
-  /* Same fix as .marquee-inner's RC-4 root cause: keeps this track on one
-     persistent GPU layer for the whole animation, instead of iOS Safari
-     dropping/recreating it mid-scroll. */
+  /* No CSS `animation:` here — motion is JS-driven (initDraggableMarquees
+     in script.js). See the Global Safari .marquee-inner comment near the
+     top of this file for why: iOS WebKit has a documented history of
+     silently dropping long-running CSS animations, and a plain CSS
+     animation can't support drag-to-scroll either. */
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
-
-/* Explicit reverse keyframe instead of animation-direction:reverse — see the
-   Global Safari marquee's RC-3 FIX comment on @keyframes marquee-right for
-   why animation-direction:reverse specifically breaks on iOS WebKit here
-   (it misreads the reversed start frame as "off-screen" and collapses the
-   row to 0 height). */
-.continent-marquee-track.reverse {
-  animation-name: continent-auto-scroll-reverse;
-}
-
-@keyframes continent-auto-scroll {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-@keyframes continent-auto-scroll-reverse {
-  0%   { transform: translateX(-50%); }
-  100% { transform: translateX(0%); }
-}
-
 
 /* Country Card Item */
 .country-photo-card {

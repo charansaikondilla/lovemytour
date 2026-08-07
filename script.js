@@ -177,20 +177,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // 1.2 (removed) Legacy scroll-driven canvas/cloud hero effects - the hero now uses a
   //     plain crossfade photo slideshow, so no scroll-linked background work is needed.
 
-  // 1.3 SAFARI CAROUSEL CONTROLS (Pause CSS Marquee on Touch / Hover)
-  function initSafariCarouselControls() {
-    const rows = document.querySelectorAll('.destinations-container .cards-grid');
-    rows.forEach(row => {
-      if (!row) return;
-      row.addEventListener('touchstart', () => { row.classList.add('paused'); }, { passive: true });
-      row.addEventListener('touchend', () => {
-        setTimeout(() => { row.classList.remove('paused'); }, 2000);
-      }, { passive: true });
-      row.addEventListener('mouseenter', () => { row.classList.add('paused'); });
-      row.addEventListener('mouseleave', () => { row.classList.remove('paused'); });
-    });
-  }
-  initSafariCarouselControls();
+  // 1.3 SAFARI CAROUSEL — draggable, auto-scrolling marquee (see
+  //     initDraggableMarquees, defined later in this file, for how the
+  //     motion/drag itself works).
+  initDraggableMarquees('.destinations-container .cards-grid', '.marquee-inner', {
+    secondsPerLoop: 32,
+    isReverse: (track) => track.classList.contains('marquee-reverse')
+  });
 
   // 1.4 HERO COUNTRY SEARCH — type a country, jump straight to its package page.
   // Builds its index straight from packagesData.js so every category added
@@ -1473,7 +1466,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     isContinentsRendered = true;
     initContinentsHeroSlider();
-    initContinentDragScroll();
+    initDraggableMarquees('.continent-marquee-wrapper', '.continent-marquee-track', {
+      secondsPerLoop: 20,
+      isReverse: (track) => track.classList.contains('reverse')
+    });
     initContinentsSearch();
   }
 
@@ -1563,61 +1559,110 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Enable drag-to-scroll on continent marquee rows.
-  // Dragging pauses the CSS animation; releasing resumes it automatically.
-  function initContinentDragScroll() {
-    const wrappers = document.querySelectorAll('.continent-marquee-wrapper');
-    wrappers.forEach(wrapper => {
-      const track = wrapper.querySelector('.continent-marquee-track');
+  // ==========================================================================
+  // UNIFIED DRAGGABLE / AUTO-SCROLLING MARQUEE
+  // Used by both the Global Safari rows (home page) and the Continents page
+  // rows. Motion is 100% JS/requestAnimationFrame driven — never a CSS
+  // @keyframes animation. That matters for two reasons:
+  //   1. iOS Safari has a documented history (see the RC-3/RC-4 fixes
+  //      elsewhere in styles.css) of silently pausing or losing track of
+  //      long-running CSS animations, which is exactly what made the Global
+  //      Safari rows appear to "stop" scrolling after a while on iPhone. A
+  //      position value that this code increments and wraps every frame has
+  //      no animation-iteration-count for the browser to lose track of.
+  //   2. A plain CSS animation can't be manually dragged. Driving position
+  //      from JS means drag-to-scroll (mouse or touch, via Pointer Events)
+  //      is just "temporarily let the user set the position instead of the
+  //      clock" — the same code path handles both.
+  //
+  // wrapperSelector: the overflow:hidden clipping element (drag target).
+  // trackSelector: its child that actually holds the (duplicated-for-loop)
+  //                cards and receives the translateX.
+  // secondsPerLoop: how long one full pass through the (single, not
+  //                 doubled) card set should take — lower is faster.
+  // isReverse(track): return true if this particular track should scroll
+  //                    the opposite direction (e.g. every other row).
+  function initDraggableMarquees(wrapperSelector, trackSelector, { secondsPerLoop, isReverse }) {
+    const wrappers = document.querySelectorAll(wrapperSelector);
+
+    wrappers.forEach((wrapper) => {
+      const track = wrapper.querySelector(trackSelector);
       if (!track) return;
 
-      let isDragging = false;
-      let startX = 0;
-      let currentTranslate = 0;
+      const reverse = isReverse(track);
+      const direction = reverse ? 1 : -1; // -1 = drifts left, 1 = drifts right
 
-      // Safely parse current translateX without DOMMatrix (avoids crash on "none")
-      function getLiveTranslateX() {
-        try {
-          const style = window.getComputedStyle(track);
-          const transform = style.transform;
-          if (!transform || transform === 'none') return 0;
-          const match = transform.match(/matrix\(.*?,\s*.*?,\s*.*?,\s*.*?,\s*([-\d.]+),/);
-          return match ? parseFloat(match[1]) : 0;
-        } catch (e) {
-          return 0;
+      let loopWidth = track.scrollWidth / 2; // content is duplicated once for a seamless loop
+      let position = 0;
+      let dragging = false;
+      let dragStartX = 0;
+      let dragStartPosition = 0;
+      let resumeAt = 0;   // performance.now() timestamp; autoplay stays off until this passes
+      let lastFrameTime = null;
+
+      function remeasure() {
+        loopWidth = track.scrollWidth / 2;
+      }
+      window.addEventListener('resize', remeasure);
+
+      function wrapPosition() {
+        if (loopWidth <= 0) return;
+        // Keep position in (-loopWidth, 0] regardless of which direction it's
+        // currently moving — this is what makes the loop seamless and, more
+        // importantly, makes it structurally impossible for it to "end."
+        while (position <= -loopWidth) position += loopWidth;
+        while (position > 0) position -= loopWidth;
+      }
+
+      function applyTransform() {
+        track.style.transform = `translateX(${position}px)`;
+      }
+
+      function frame(now) {
+        if (lastFrameTime === null) lastFrameTime = now;
+        const dt = (now - lastFrameTime) / 1000;
+        lastFrameTime = now;
+
+        if (!dragging && now >= resumeAt && loopWidth > 0) {
+          const pxPerSecond = loopWidth / secondsPerLoop;
+          position += direction * pxPerSecond * dt;
+          wrapPosition();
+          applyTransform();
+        }
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+
+      // ── Manual drag: mouse + touch + pen, unified via Pointer Events ──
+      wrapper.style.touchAction = 'pan-y'; // let vertical page scroll pass through; JS owns horizontal drags
+
+      function onPointerDown(e) {
+        dragging = true;
+        dragStartX = e.clientX;
+        dragStartPosition = position;
+        if (wrapper.setPointerCapture) {
+          try { wrapper.setPointerCapture(e.pointerId); } catch (err) { /* no-op */ }
         }
       }
 
-      function onMouseDown(e) {
-        isDragging = true;
-        startX = e.clientX;
-        currentTranslate = getLiveTranslateX();
-        track.style.animationPlayState = 'paused';
-        track.style.transform = `translateX(${currentTranslate}px)`;
-        track.style.transition = 'none';
-        wrapper.style.cursor = 'grabbing';
-        e.preventDefault();
+      function onPointerMove(e) {
+        if (!dragging) return;
+        position = dragStartPosition + (e.clientX - dragStartX);
+        wrapPosition();
+        applyTransform();
       }
 
-      function onMouseMove(e) {
-        if (!isDragging) return;
-        const dx = e.clientX - startX;
-        track.style.transform = `translateX(${currentTranslate + dx}px)`;
+      function endDrag() {
+        if (!dragging) return;
+        dragging = false;
+        resumeAt = performance.now() + 500; // brief grace period so autoplay doesn't yank the row right after a release
       }
 
-      function onMouseUp() {
-        if (!isDragging) return;
-        isDragging = false;
-        wrapper.style.cursor = 'grab';
-        track.style.transition = '';
-        track.style.transform = '';
-        track.style.animationPlayState = 'running';
-      }
-
-      wrapper.addEventListener('mousedown', onMouseDown);
-      window.addEventListener('mousemove', onMouseMove);
-      window.addEventListener('mouseup', onMouseUp);
-      wrapper.style.cursor = 'grab';
+      wrapper.addEventListener('pointerdown', onPointerDown);
+      wrapper.addEventListener('pointermove', onPointerMove);
+      wrapper.addEventListener('pointerup', endDrag);
+      wrapper.addEventListener('pointercancel', endDrag);
+      wrapper.addEventListener('pointerleave', endDrag);
     });
   }
 
