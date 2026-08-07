@@ -1867,6 +1867,15 @@ body {
     padding: 2px 0 !important;
     margin: 0 !important;
     width: 100% !important;
+    /* RC-5 FIX: explicit height (125px card + 2px padding top/bottom),
+       instead of trusting it to be correctly derived through the
+       width:max-content flex child below. The translateZ(0) GPU-layer hint
+       just above was the RC-3 mitigation for WebKit failing that
+       derivation and collapsing this row to 0 height (which reads as "the
+       row disappeared") — a hint can still fail under some conditions;
+       pinning the height directly removes the dependency on WebKit getting
+       the derivation right at all. */
+    height: 129px !important;
     position: relative !important;
     scrollbar-width: none !important;
     /* RC-3 FIX (part 1): Force GPU compositing on the clip container.
@@ -1892,6 +1901,10 @@ body {
     width: max-content !important;
     /* RC-3 FIX (part 2): belt-and-suspenders for WebKit max-content computation */
     min-width: max-content !important;
+    /* RC-5 FIX: same reasoning as .cards-grid's explicit height above —
+       matches .card's mobile height (125px) directly instead of relying on
+       it being derived correctly. */
+    height: 125px !important;
     will-change: transform !important;
     flex-shrink: 0 !important;
     /* Kept for GPU compositing quality even though motion is now JS-driven
@@ -5812,6 +5825,14 @@ body {
   overflow: hidden;
   padding: 8px 0 24px 0;
   cursor: grab;
+  /* Explicit height (280px card + 32px padding, box-sizing:border-box means
+     this is the total box) instead of trusting it to be correctly derived
+     through the width:max-content flex track this wraps. See
+     .continent-marquee-track and the Global Safari .cards-grid's RC-5 FIX
+     comment for the full reasoning — WebKit can fail that derivation and
+     collapse the whole row to 0 height, which looks exactly like "the row
+     disappeared." Mobile override below matches the 230px mobile card size. */
+  height: 312px;
   /* Same fix as the Global Safari marquee's .cards-grid (see styles.css
      RC-3 FIX comment there): promotes the clipping container to its own GPU
      layer so iOS Safari reliably measures the max-content child's width on
@@ -5829,6 +5850,9 @@ body {
   gap: 20px;
   width: max-content;
   min-width: max-content;
+  /* Explicit height matching .country-photo-card — see
+     .continent-marquee-wrapper's comment above for why. */
+  height: 280px;
   padding: 0 20px;
   will-change: transform;
   /* No CSS `animation:` here — motion is JS-driven (initDraggableMarquees
@@ -5942,6 +5966,18 @@ body {
 
   .country-photo-card {
     flex: 0 0 190px !important;
+    height: 230px !important;
+  }
+
+  /* RC-5 FIX (Continents mobile): explicit heights matching the 230px
+     mobile card, same reasoning as the Global Safari .cards-grid/
+     .marquee-inner RC-5 FIX — see that comment near the top of this file.
+     262px = 230px card + this wrapper's 32px vertical padding. */
+  .continent-marquee-wrapper {
+    height: 262px !important;
+  }
+
+  .continent-marquee-track {
     height: 230px !important;
   }
 }
