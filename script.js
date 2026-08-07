@@ -1467,7 +1467,7 @@ document.addEventListener('DOMContentLoaded', () => {
     isContinentsRendered = true;
     initContinentsHeroSlider();
     initDraggableMarquees('.continent-marquee-wrapper', '.continent-marquee-track', {
-      secondsPerLoop: 20,
+      secondsPerLoop: 30,
       isReverse: (track) => track.classList.contains('reverse')
     });
     initContinentsSearch();
@@ -1599,20 +1599,6 @@ document.addEventListener('DOMContentLoaded', () => {
       let dragStartPosition = 0;
       let resumeAt = 0;   // performance.now() timestamp; autoplay stays off until this passes
       let lastFrameTime = null;
-      let lastPaintTime = 0;
-      // iPhone Pro/Pro Max models have ProMotion (120Hz) displays, so a plain
-      // requestAnimationFrame loop calls applyTransform() — which touches the
-      // DOM and triggers a repaint/composite of every card in the row —
-      // twice as often as a normal 60Hz device. For a slow decorative drift
-      // like this, 120 repaints/second is imperceptibly different from 30,
-      // but it is real sustained GPU/CPU cost that compounds the longer the
-      // page stays open — a strong contributor to rows degrading or going
-      // blank only "after some time," never immediately. Capping how often
-      // the DOM actually gets touched (independent of how often position
-      // itself is recalculated, which stays at full precision every tick)
-      // cuts that sustained cost by up to 4x without any visible change in
-      // how the row moves.
-      const PAINT_INTERVAL_MS = 1000 / 30;
       // Only true while the row is actually on screen (IntersectionObserver
       // below) — skipping all work while scrolled away stops this row from
       // contributing to the GPU/main-thread load that builds up over a long
@@ -1660,10 +1646,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const pxPerSecond = loopWidth / secondsPerLoop;
           position += direction * pxPerSecond * dt;
           wrapPosition();
-          if (now - lastPaintTime >= PAINT_INTERVAL_MS) {
-            applyTransform();
-            lastPaintTime = now;
-          }
+          applyTransform();
         }
         requestAnimationFrame(frame);
       }
