@@ -1599,11 +1599,23 @@ document.addEventListener('DOMContentLoaded', () => {
       let dragStartPosition = 0;
       let resumeAt = 0;   // performance.now() timestamp; autoplay stays off until this passes
       let lastFrameTime = null;
+      // Only true while the row is actually on screen (IntersectionObserver
+      // below) — skipping all work while scrolled away stops this row from
+      // contributing to the GPU/main-thread load that builds up over a long
+      // session elsewhere on the page. Every row still costs something even
+      // off-screen if left running; this is the standard fix for that.
+      let isVisible = true;
 
       function remeasure() {
         loopWidth = track.scrollWidth / 2;
       }
       window.addEventListener('resize', remeasure);
+
+      const visibilityObserver = new IntersectionObserver(
+        (entries) => { isVisible = entries[0].isIntersecting; },
+        { threshold: 0 }
+      );
+      visibilityObserver.observe(wrapper);
 
       function wrapPosition() {
         if (loopWidth <= 0) return;
@@ -1620,10 +1632,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
       function frame(now) {
         if (lastFrameTime === null) lastFrameTime = now;
-        const dt = (now - lastFrameTime) / 1000;
+        // Clamp elapsed time: if the tab was backgrounded and rAF was
+        // suspended (normal browser behavior), the next frame's "now" can
+        // be minutes ahead of the last one. Without a clamp, position would
+        // jump an enormous, essentially random distance in a single frame
+        // the moment the tab becomes visible again — not the same bug as
+        // rows disappearing, but the same family of "looks broken after
+        // being away for a while."
+        const dt = Math.min((now - lastFrameTime) / 1000, 0.1);
         lastFrameTime = now;
 
-        if (!dragging && now >= resumeAt && loopWidth > 0) {
+        if (isVisible && !dragging && now >= resumeAt && loopWidth > 0) {
           const pxPerSecond = loopWidth / secondsPerLoop;
           position += direction * pxPerSecond * dt;
           wrapPosition();

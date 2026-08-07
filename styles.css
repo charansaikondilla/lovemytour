@@ -421,7 +421,8 @@ body {
 }
 
 .destinations-header {
-  background: rgba(240, 249, 255, 0.92); /* Glacier white blue */
+  background: rgba(240, 249, 255, 0.92);
+  /* Glacier white blue */
   backdrop-filter: blur(18px) saturate(160%);
   -webkit-backdrop-filter: blur(18px) saturate(160%);
   border: 1px solid rgba(255, 255, 255, 0.9);
@@ -1912,9 +1913,17 @@ body {
     height: 125px !important;
     border-radius: 18px !important;
     border: 1.5px solid rgba(255, 255, 255, 0.25) !important;
-    background: rgba(15, 23, 42, 0.55) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
+    /* No backdrop-filter here (was blur(12px)) — this card sits inside a row
+       whose position is now updated every animation frame by JS (see
+       initDraggableMarquees in script.js). backdrop-filter has to resample
+       and re-blur whatever's behind it on every repaint, and with ~50+ card
+       instances doing that continuously at up to 120fps on ProMotion
+       displays, it was very likely the actual cause of rows going blank
+       after sustained scrolling — iOS Safari defensively hides/simplifies
+       content under sustained GPU/memory pressure rather than crash the
+       tab. A flatter, more opaque solid background gives the same "dark
+       glass" contrast for the text without the per-frame blur cost. */
+    background: rgba(15, 23, 42, 0.72) !important;
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35) !important;
     scroll-snap-align: start !important;
     transition: transform 0.25s ease, box-shadow 0.25s ease;
@@ -1944,9 +1953,8 @@ body {
     top: 8px !important;
     right: 8px !important;
     left: auto !important;
-    background: rgba(15, 23, 42, 0.68) !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
+    /* No backdrop-filter here either — same reasoning as .card above. */
+    background: rgba(15, 23, 42, 0.82) !important;
     border: 1px solid rgba(255, 255, 255, 0.28) !important;
     color: #f1f5f9 !important;
     font-size: 9px !important;
@@ -2301,7 +2309,7 @@ body {
 
 .mega-header-icon {
   font-size: 28px;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 .mega-header-text {
@@ -3683,13 +3691,11 @@ body {
 .cinematic-card-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    to top,
-    rgba(15, 23, 42, 0.95) 0%,
-    rgba(15, 23, 42, 0.6) 45%,
-    rgba(15, 23, 42, 0.1) 75%,
-    transparent 100%
-  );
+  background: linear-gradient(to top,
+      rgba(15, 23, 42, 0.95) 0%,
+      rgba(15, 23, 42, 0.6) 45%,
+      rgba(15, 23, 42, 0.1) 75%,
+      transparent 100%);
   border-radius: 24px;
   z-index: 2;
   pointer-events: none;
@@ -4472,6 +4478,7 @@ body {
   letter-spacing: 1.5px;
   font-weight: 700;
 }
+
 .inside-hero-title.luxury-title {
   font-size: clamp(2.2rem, 4vw, 3.5rem);
   font-weight: 900;
@@ -4508,10 +4515,25 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
-.hero-badge-pill.category-pill { background: rgba(8, 145, 178, 0.85); color: #ffffff; }
-.hero-badge-pill.duration-pill { background: rgba(15, 23, 42, 0.85); color: #38bdf8; }
-.hero-badge-pill.hotel-pill { background: rgba(245, 158, 11, 0.85); color: #ffffff; }
-.hero-badge-pill.rating-pill { background: rgba(16, 185, 129, 0.85); color: #ffffff; }
+.hero-badge-pill.category-pill {
+  background: rgba(8, 145, 178, 0.85);
+  color: #ffffff;
+}
+
+.hero-badge-pill.duration-pill {
+  background: rgba(15, 23, 42, 0.85);
+  color: #38bdf8;
+}
+
+.hero-badge-pill.hotel-pill {
+  background: rgba(245, 158, 11, 0.85);
+  color: #ffffff;
+}
+
+.hero-badge-pill.rating-pill {
+  background: rgba(16, 185, 129, 0.85);
+  color: #ffffff;
+}
 
 /* Page Body */
 .luxury-body {
@@ -4542,6 +4564,7 @@ body {
   padding: 10px;
   border-right: 1px solid #f1f5f9;
 }
+
 .highlight-item:last-child {
   border-right: none;
 }
@@ -4721,6 +4744,7 @@ body {
   object-fit: cover;
   transition: transform 0.6s ease;
 }
+
 .editorial-img-main-wrap:hover .editorial-img-main {
   transform: scale(1.04);
 }
@@ -4759,6 +4783,7 @@ body {
   object-fit: cover;
   transition: transform 0.5s ease;
 }
+
 .gallery-sub-item:hover .editorial-img-sub {
   transform: scale(1.05);
 }
@@ -4770,10 +4795,12 @@ body {
   gap: 24px;
   margin-top: 24px;
 }
+
 .itinerary-timeline-item {
   display: flex;
   gap: 20px;
 }
+
 .timeline-node {
   width: 44px;
   height: 44px;
@@ -4788,6 +4815,7 @@ body {
   flex-shrink: 0;
   box-shadow: 0 4px 14px rgba(8, 145, 178, 0.4);
 }
+
 .luxury-card {
   background: #f8fafc;
   padding: 24px;
@@ -4796,10 +4824,12 @@ body {
   width: 100%;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
+
 .luxury-card:hover {
   border-color: #0891b2;
   box-shadow: 0 8px 24px rgba(8, 145, 178, 0.12);
 }
+
 .timeline-day-tag {
   color: #0891b2;
   font-weight: 800;
@@ -4809,12 +4839,14 @@ body {
   margin-bottom: 6px;
   display: block;
 }
+
 .timeline-day-title {
   font-size: 1.25rem;
   font-weight: 800;
   color: #0f172a;
   margin-bottom: 12px;
 }
+
 .timeline-day-desc {
   font-size: 0.98rem;
   color: #475569;
@@ -4923,6 +4955,7 @@ body {
   cursor: pointer;
   transition: all 0.2s;
 }
+
 .counter-btn:hover {
   background: #0891b2;
   color: #ffffff;
@@ -4953,6 +4986,7 @@ body {
   width: 100%;
   box-shadow: 0 6px 18px rgba(8, 145, 178, 0.4);
 }
+
 .luxury-btn:hover {
   background: linear-gradient(135deg, #0891b2, #0e7490) !important;
   transform: translateY(-2px);
@@ -4973,6 +5007,7 @@ body {
   gap: 8px;
   transition: all 0.2s ease;
 }
+
 .luxury-btn-outline:hover {
   background: #25d366 !important;
   color: #ffffff !important;
@@ -4993,6 +5028,7 @@ body {
   text-decoration: none;
   transition: all 0.2s ease;
 }
+
 .widget-call-btn:hover {
   background: #e2e8f0;
   color: #0891b2;
@@ -5006,6 +5042,7 @@ body {
   border-top: 1px solid #f1f5f9;
   padding-top: 14px;
 }
+
 .luxury-trust .trust-item {
   color: #475569;
   font-size: 0.85rem;
@@ -5018,19 +5055,23 @@ body {
     grid-template-columns: repeat(3, 1fr);
     gap: 12px;
   }
+
   .highlight-item:nth-child(3) {
     border-right: none;
   }
+
   .luxury-grid {
     grid-template-columns: 1fr;
     gap: 32px;
   }
+
   .inside-booking-sidebar {
     position: static;
   }
 }
 
 @media (max-width: 768px) {
+
   .cinematic-portfolio-section,
   .dedicated-page-wrapper,
   #package-detail-view,
@@ -5231,26 +5272,33 @@ body {
     border-radius: 20px;
     gap: 32px;
   }
+
   .editorial-section-title {
     font-size: 1.4rem !important;
   }
+
   .editorial-img-main-wrap {
     height: 220px !important;
   }
+
   .gallery-sub-item {
     height: 110px !important;
   }
+
   .itinerary-timeline-item {
     gap: 14px;
   }
+
   .timeline-node {
     width: 36px;
     height: 36px;
     font-size: 0.95rem;
   }
+
   .luxury-card {
     padding: 18px;
   }
+
   .luxury-widget {
     padding: 24px 18px;
     border-radius: 20px;
@@ -5262,6 +5310,7 @@ body {
     align-items: flex-end !important;
     z-index: 99999 !important;
   }
+
   .modal-box {
     width: 100% !important;
     max-width: 100% !important;
@@ -5272,14 +5321,17 @@ body {
     margin: 0 !important;
     box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.4) !important;
   }
+
   .close-modal-btn {
     top: 14px !important;
     right: 14px !important;
   }
+
   .modal-title {
     font-size: 19px !important;
     padding-right: 30px;
   }
+
   .modal-subtitle {
     font-size: 12.5px !important;
     margin-bottom: 16px !important;
@@ -5308,26 +5360,31 @@ body {
     border-top: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.3);
   }
+
   .mobile-book-price-info {
     display: flex;
     flex-direction: column;
   }
+
   .mobile-price-lbl {
     font-size: 0.72rem;
     color: #94a3b8;
     text-transform: uppercase;
     font-weight: 600;
   }
+
   .mobile-price-val {
     font-size: 1.2rem;
     font-weight: 900;
     color: #ffffff;
   }
+
   .mobile-price-val small {
     font-size: 0.75rem;
     color: #cbd5e1;
     font-weight: 500;
   }
+
   .mobile-book-now-btn {
     background: linear-gradient(135deg, #0891b2, #06b6d4);
     color: #ffffff;
@@ -5615,6 +5672,7 @@ body {
 }
 
 @media (max-width: 900px) {
+
   /* Smaller footprint in the hero so the box + its dropdown never reach down
      into the same screen area as the fixed WhatsApp/chatbot buttons
      (bottom-right, z-index 9999). Hero-only — the same class used elsewhere
@@ -5868,16 +5926,20 @@ body {
   .continents-hero-title {
     font-size: 34px !important;
   }
+
   .continents-hero-subtitle {
     font-size: 15px !important;
   }
+
   .continent-section-block {
     padding: 20px 14px !important;
     border-radius: 18px !important;
   }
+
   .continent-title-group h2 {
     font-size: 24px !important;
   }
+
   .country-photo-card {
     flex: 0 0 190px !important;
     height: 230px !important;
@@ -5986,7 +6048,7 @@ body {
   white-space: nowrap !important;
   text-overflow: ellipsis !important;
   overflow: hidden !important;
-  text-shadow: 0 2px 10px rgba(0,0,0,0.6) !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6) !important;
 }
 
 .continent-card-pin {
@@ -6047,17 +6109,21 @@ body {
     perspective: 800px !important;
     height: 380px !important;
   }
+
   .continent-showcase-card {
     width: 250px !important;
     height: 350px !important;
     border-radius: 22px !important;
   }
+
   .continent-card-name {
     font-size: 22px !important;
   }
+
   .continent-card-desc {
     font-size: 11.5px !important;
   }
+
   .carousel-control-btn {
     width: 38px !important;
     height: 38px !important;
@@ -6142,8 +6208,13 @@ body {
 }
 
 @keyframes domesticMarqueeTrack {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 .domestic-photo-card {
@@ -6351,14 +6422,17 @@ body {
   .domestic-marquee-section {
     padding: 60px 16px;
   }
+
   .domestic-title {
     font-size: 26px;
   }
+
   .domestic-photo-card {
     width: 230px;
     height: 320px;
     border-radius: 20px;
   }
+
   .domestic-card-name {
     font-size: 20px;
   }
@@ -6366,17 +6440,21 @@ body {
   .customized-travel-section {
     padding: 60px 16px;
   }
+
   .customized-title {
     font-size: 26px;
   }
+
   .customized-grid {
     grid-template-columns: 1fr;
     gap: 16px;
   }
+
   .customized-card {
     padding: 24px 20px;
     border-radius: 20px;
   }
+
   .customized-whatsapp-btn {
     width: 100% !important;
     padding: 14px 20px !important;
@@ -6642,6 +6720,7 @@ body {
     bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     right: 14px;
   }
+
   .travel-ai-window {
     width: calc(100vw - 28px);
     right: 0;
@@ -6657,6 +6736,7 @@ body {
   .mobile-sticky-book-bar {
     display: none !important;
   }
+
   .nav-link-mobile-continents {
     display: none !important;
   }
@@ -6666,6 +6746,7 @@ body {
   .nav-dropdown-packages {
     display: none !important;
   }
+
   .nav-link-mobile-continents {
     display: flex !important;
     align-items: center;
@@ -6684,10 +6765,12 @@ body {
   .inside-page-body {
     padding: 24px 16px 90px 16px !important;
   }
+
   .inside-layout-grid {
     grid-template-columns: 1fr !important;
     gap: 20px !important;
   }
+
   .inside-booking-sidebar {
     display: none !important;
   }
@@ -6701,22 +6784,26 @@ body {
     border: none !important;
     box-shadow: none !important;
   }
+
   .editorial-eyebrow {
     margin-bottom: 8px !important;
     display: inline-block !important;
   }
+
   .editorial-section-title {
     font-size: 26px !important;
     font-weight: 900 !important;
     margin: 4px 0 16px 0 !important;
     letter-spacing: -0.5px !important;
   }
+
   .editorial-section p {
     font-size: 16px !important;
     line-height: 1.75 !important;
     color: #334155 !important;
     margin-bottom: 12px !important;
   }
+
   .famous-landmark-card {
     padding: 20px !important;
     border-radius: 16px !important;
@@ -6724,13 +6811,14 @@ body {
     border: none !important;
     box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05) !important;
   }
-  
+
   /* TOP ACTION BUTTON (MOBILE SPECIFIC) */
   .mobile-top-action-bar {
     display: block !important;
     margin-bottom: 32px !important;
     text-align: center !important;
   }
+
   .mobile-top-whatsapp-btn {
     display: inline-flex !important;
     align-items: center !important;
@@ -6746,6 +6834,7 @@ body {
     box-shadow: 0 8px 24px rgba(37, 211, 102, 0.35) !important;
     transition: transform 0.2s ease !important;
   }
+
   .mobile-top-whatsapp-btn:active {
     transform: scale(0.98) !important;
   }
@@ -6803,6 +6892,7 @@ body {
     transform: scale(0.97) !important;
   }
 }
+
 /* Mobile navbar and chatbot overrides */
 @media (max-width: 990px) {
   .nav-links {
@@ -7057,6 +7147,7 @@ body {
   .chat-message {
     max-width: 92%;
   }
+
   #category-view .editorial-section-title {
     font-size: 22px !important;
     font-weight: 800 !important;
@@ -7374,7 +7465,7 @@ body {
 }
 
 /* ── Safari rows now flow normally below the hero ────────────────────── */
-.hero-wrapper > .destinations-container {
+.hero-wrapper>.destinations-container {
   width: 100%;
   margin: 40px 0 56px 0;
   padding: 0 48px;
@@ -7464,7 +7555,7 @@ body {
   }
 
   /* Safari rows: back to normal document flow (no 85vh absolute stage) */
-  .hero-wrapper > .destinations-container {
+  .hero-wrapper>.destinations-container {
     position: static !important;
     top: auto !important;
     left: auto !important;
@@ -8806,7 +8897,7 @@ body {
   color: var(--text-muted);
 }
 
-.careers-apply-alt p + p {
+.careers-apply-alt p+p {
   margin-top: 12px;
 }
 
@@ -9190,4 +9281,4 @@ body {
     width: 36px;
     height: 36px;
   }
-}
+}
