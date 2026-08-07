@@ -1653,25 +1653,61 @@ document.addEventListener('DOMContentLoaded', () => {
       requestAnimationFrame(frame);
 
       // ── Manual drag: mouse + touch + pen, unified via Pointer Events ──
-      wrapper.style.touchAction = 'pan-y'; // let vertical page scroll pass through; JS owns horizontal drags
+      // Direction-locked: a touch that starts on this row is NOT assumed to
+      // be a drag. It only becomes one once movement is clearly more
+      // horizontal than vertical past a small dead zone — until then we
+      // never call setPointerCapture or touch `position`, so a normal
+      // vertical page-scroll gesture that happens to start on top of this
+      // row passes straight through untouched. Committing immediately (the
+      // previous version of this code) captured the pointer on every touch,
+      // which fights the browser's native scrolling and was corrupting/
+      // visibly breaking whichever row a user's thumb happened to land on
+      // when they scrolled past it — this is what was actually causing rows
+      // to appear broken/invisible, not a GPU or animation issue.
+      wrapper.style.touchAction = 'pan-y'; // let vertical page scroll pass through; JS owns confirmed horizontal drags
+      const DRAG_THRESHOLD_PX = 6;
+
+      let trackingPointerId = null;
+      let downX = 0;
+      let downY = 0;
 
       function onPointerDown(e) {
-        dragging = true;
-        dragStartX = e.clientX;
-        dragStartPosition = position;
-        if (wrapper.setPointerCapture) {
-          try { wrapper.setPointerCapture(e.pointerId); } catch (err) { /* no-op */ }
-        }
+        trackingPointerId = e.pointerId;
+        downX = e.clientX;
+        downY = e.clientY;
+        // Deliberately not setting dragging=true or capturing the pointer
+        // yet — see onPointerMove.
       }
 
       function onPointerMove(e) {
-        if (!dragging) return;
+        if (e.pointerId !== trackingPointerId) return;
+
+        if (!dragging) {
+          const dx = e.clientX - downX;
+          const dy = e.clientY - downY;
+          if (Math.abs(dx) < DRAG_THRESHOLD_PX && Math.abs(dy) < DRAG_THRESHOLD_PX) return;
+          if (Math.abs(dy) >= Math.abs(dx)) {
+            // Vertical intent — this is a page scroll, not a carousel drag.
+            // Back off completely for the rest of this touch.
+            trackingPointerId = null;
+            return;
+          }
+          // Horizontal intent confirmed — commit to dragging from here.
+          dragging = true;
+          dragStartX = e.clientX;
+          dragStartPosition = position;
+          if (wrapper.setPointerCapture) {
+            try { wrapper.setPointerCapture(e.pointerId); } catch (err) { /* no-op */ }
+          }
+        }
+
         position = dragStartPosition + (e.clientX - dragStartX);
         wrapPosition();
         applyTransform();
       }
 
-      function endDrag() {
+      function endDrag(e) {
+        trackingPointerId = null;
         if (!dragging) return;
         dragging = false;
         resumeAt = performance.now() + 500; // brief grace period so autoplay doesn't yank the row right after a release
