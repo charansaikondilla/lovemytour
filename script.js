@@ -182,7 +182,8 @@ document.addEventListener('DOMContentLoaded', () => {
   //     motion/drag itself works).
   initDraggableMarquees('.destinations-container .cards-grid', '.marquee-inner', {
     secondsPerLoop: 32,
-    isReverse: (track) => track.classList.contains('marquee-reverse')
+    isReverse: (track) => track.classList.contains('marquee-reverse'),
+    useVisibilityGating: false
   });
 
   // 1.4 HERO COUNTRY SEARCH — type a country, jump straight to its package page.
@@ -1468,7 +1469,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initContinentsHeroSlider();
     initDraggableMarquees('.continent-marquee-wrapper', '.continent-marquee-track', {
       secondsPerLoop: 30,
-      isReverse: (track) => track.classList.contains('reverse')
+      isReverse: (track) => track.classList.contains('reverse'),
+      useVisibilityGating: true // unchanged — do not touch the Continents page's behavior
     });
     initContinentsSearch();
   }
@@ -1582,7 +1584,7 @@ document.addEventListener('DOMContentLoaded', () => {
   //                 doubled) card set should take — lower is faster.
   // isReverse(track): return true if this particular track should scroll
   //                    the opposite direction (e.g. every other row).
-  function initDraggableMarquees(wrapperSelector, trackSelector, { secondsPerLoop, isReverse }) {
+  function initDraggableMarquees(wrapperSelector, trackSelector, { secondsPerLoop, isReverse, useVisibilityGating = true }) {
     const wrappers = document.querySelectorAll(wrapperSelector);
 
     wrappers.forEach((wrapper) => {
@@ -1600,10 +1602,18 @@ document.addEventListener('DOMContentLoaded', () => {
       let resumeAt = 0;   // performance.now() timestamp; autoplay stays off until this passes
       let lastFrameTime = null;
       // Only true while the row is actually on screen (IntersectionObserver
-      // below) — skipping all work while scrolled away stops this row from
-      // contributing to the GPU/main-thread load that builds up over a long
-      // session elsewhere on the page. Every row still costs something even
-      // off-screen if left running; this is the standard fix for that.
+      // below, when useVisibilityGating is on) — skipping all work while
+      // scrolled away stops this row from contributing to the GPU/main-
+      // thread load that builds up over a long session elsewhere on the
+      // page. Left permanently `true` when the gating is off, so the row
+      // always keeps animating regardless of scroll position. Global Safari
+      // has this off: if the observer's callback ever simply fails to fire
+      // an update on some iOS condition (isVisible getting stuck at
+      // whatever it last reported), a row gated on it would freeze
+      // permanently — indistinguishable from "the row disappeared," which
+      // is exactly what was reported. Not worth that risk for a background
+      // decorative row; Continents keeps the gating since it wasn't
+      // reported to have this problem.
       let isVisible = true;
 
       function remeasure() {
@@ -1611,11 +1621,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       window.addEventListener('resize', remeasure);
 
-      const visibilityObserver = new IntersectionObserver(
-        (entries) => { isVisible = entries[0].isIntersecting; },
-        { threshold: 0 }
-      );
-      visibilityObserver.observe(wrapper);
+      if (useVisibilityGating) {
+        const visibilityObserver = new IntersectionObserver(
+          (entries) => { isVisible = entries[0].isIntersecting; },
+          { threshold: 0 }
+        );
+        visibilityObserver.observe(wrapper);
+      }
 
       function wrapPosition() {
         if (loopWidth <= 0) return;
