@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host --open",
+    "prebuild": "node sync-public-assets.js",
     "build": "vite build",
     "preview": "vite preview"
   },

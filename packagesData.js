@@ -2262,7 +2262,7 @@ export const destinationsData = {
     id: "fiji",
     title: "Fiji Packages",
     category: "International",
-    banner: "assets/images/Fiji.jpg",
+    banner: "assets/images/fiji.jpg",
     description: "Explore the amazing sights, sounds, and vibrant culture of Fiji.",
     packages: [
       {
@@ -2273,7 +2273,7 @@ export const destinationsData = {
         priceNum: 82000,
         perPerson: true,
         tag: "Island Resort",
-        image: "assets/images/Fiji.jpg",
+        image: "assets/images/fiji.jpg",
         rating: "4.8",
         reviewsCount: 72,
         highlights: ["Sabeto Mud Pools & Hot Springs", "South Sea Island Cruise", "Coral Coast Snorkeling", "Traditional Kava Ceremony"],

@@ -3,14 +3,20 @@ dist/
 .DS_Store
 *.log
 
-# Orphaned duplicate of the root assets/ and "background video/" folders —
-# stale pre-fix copies (old spaced/wrongly-cased filenames, uncompressed
-# PNGs) that nothing in the code actually references. Kept on disk in case
-# they're needed for reference, but not worth tracking or pushing (~66MB of
-# dead weight). Vite's public/_redirects and public/netlify.toml stay
-# tracked since those are genuinely used (copied verbatim into dist/ for
-# Netlify hosting).
-public/assets/
+# Local Claude Code tooling config — machine-specific permission grants,
+# not part of the website project itself.
+.claude/settings.local.json
+
+# public/assets/ IS tracked (do not ignore it) — it's a required mirror of
+# the root assets/ folder. packagesData.js/script.js reference images as
+# plain runtime strings (e.g. dest.image = "assets/images/kenya.jpg"), which
+# Vite's bundler cannot statically detect or hash — those files only make it
+# into the production build if they also exist, verbatim, under public/.
+# Keep this mirror in sync any time root assets/ changes (see
+# sync-public-assets note in package.json scripts, or copy manually).
+
+# "background video/" and these 3 root decorative PNGs ARE genuinely unused
+# duplicates (nothing references them, confirmed by grep) — safe to exclude.
 public/background video/
 public/aeroplane.png
 public/cloud_curve_panel.png

@@ -548,13 +548,25 @@ body {
   animation: marquee-left 32s linear infinite !important;
 }
 
+/* Explicit reverse keyframe instead of the shorthand's `reverse` direction
+   keyword — see the mobile @media block's RC-3 FIX comment on
+   @keyframes marquee-right for why animation-direction:reverse breaks on iOS
+   WebKit (misreads the reversed start frame as "off-screen", collapsing the
+   row to 0 height). This used to only be fixed in the mobile-only override
+   below, leaving this base rule — which also applies at every other screen
+   width — on the broken pattern. Both rules now agree unconditionally. */
 .marquee-reverse {
-  animation: marquee-left 32s linear infinite reverse !important;
+  animation: marquee-right 32s linear infinite !important;
 }
 
 @keyframes marquee-left {
   0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
+}
+
+@keyframes marquee-right {
+  0%   { transform: translateX(-50%); }
+  100% { transform: translateX(0%); }
 }
 
 .cards-grid:hover .marquee-inner,
@@ -1900,25 +1912,11 @@ body {
     -webkit-backface-visibility: hidden !important;
   }
 
-  /* RC-3 FIX: Row 2 uses an explicit @keyframes marquee-right instead of
-     animation-direction:reverse. With `reverse`, the animation START frame is
-     translateX(-50%), which iOS WebKit misinterprets as the element starting
-     entirely off-screen (when overflow:hidden clips the parent container) —
-     it then collapses the container height to 0, making the whole row invisible.
-     An explicit forward animation from -50% → 0 makes the starting state unambiguous. */
-  @keyframes marquee-right {
-    0%   { transform: translateX(-50%); }
-    100% { transform: translateX(0%); }
-  }
-
-  .marquee-reverse {
-    animation: marquee-right 32s linear infinite !important;
-  }
-
-  @keyframes marquee-left {
-    0%   { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-  }
+  /* .marquee-reverse and @keyframes marquee-left/marquee-right are now
+     defined once, unconditionally, near the top of this file — no need to
+     redeclare them per breakpoint (that duplication was itself the source
+     of a bug: the old unscoped base rule and this mobile override disagreed
+     with each other). */
 
   /* Pause on touch/hover */
   .cards-grid:hover .marquee-inner,
