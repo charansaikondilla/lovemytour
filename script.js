@@ -1667,13 +1667,18 @@ document.addEventListener('DOMContentLoaded', () => {
       // No preventDefault, no setPointerCapture — the browser handles the
       // entire drag/momentum natively. This just pauses the auto-increment
       // above while a pointer is down, and gives native momentum scrolling
-      // a moment to settle before resuming.
-      wrapper.addEventListener('pointerdown', () => { dragging = true; });
+      // a moment to settle before resuming. { passive: true } on top of the
+      // CSS touch-action: pan-x above (see its RC-11 comment) makes doubly
+      // sure the browser never has to wait on this JS before deciding how
+      // to handle a touch — passive tells it up front these listeners will
+      // never call preventDefault, so it can commit to native scrolling
+      // immediately instead of checking with JS first.
+      wrapper.addEventListener('pointerdown', () => { dragging = true; }, { passive: true });
       ['pointerup', 'pointercancel', 'pointerleave'].forEach((evt) => {
         wrapper.addEventListener(evt, () => {
           dragging = false;
           resumeAt = performance.now() + 600;
-        });
+        }, { passive: true });
       });
     });
   }

@@ -1891,6 +1891,18 @@ body {
     /* Keeps a horizontal fling here from also triggering vertical page
        bounce/rubber-banding or a browser back/forward swipe gesture. */
     overscroll-behavior-x: contain !important;
+    /* RC-11 FIX: explicitly declares this element's own native touch
+       handling as horizontal-only. Without this, the browser has to use
+       heuristics (and often has to wait on the pointerdown/up JS listeners
+       below before it can be sure) to decide whether a touch starting on a
+       card belongs to this row's horizontal scroll or the page's vertical
+       scroll — that ambiguity/wait is exactly what made normal page
+       scrolling feel disturbed after switching this row to native
+       scrollLeft. Declaring pan-x tells the browser up front: this
+       element's own native scrolling is horizontal only, so any vertical
+       drag starting here should be handed to the page immediately, with no
+       JS round-trip needed to decide. */
+    touch-action: pan-x !important;
     padding: 2px 0 !important;
     margin: 0 !important;
     width: 100% !important;
