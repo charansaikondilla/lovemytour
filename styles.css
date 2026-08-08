@@ -1869,22 +1869,27 @@ body {
     width: 100% !important;
     /* RC-5 FIX: explicit height (125px card + 2px padding top/bottom),
        instead of trusting it to be correctly derived through the
-       width:max-content flex child below. The translateZ(0) GPU-layer hint
-       just above was the RC-3 mitigation for WebKit failing that
-       derivation and collapsing this row to 0 height (which reads as "the
-       row disappeared") — a hint can still fail under some conditions;
-       pinning the height directly removes the dependency on WebKit getting
-       the derivation right at all. */
+       width:max-content flex child below. This height no longer depends on
+       WebKit correctly deriving anything, which is what made RC-3's
+       translateZ(0) hint below unnecessary — see RC-6 FIX. */
     height: 129px !important;
     position: relative !important;
     scrollbar-width: none !important;
-    /* RC-3 FIX (part 1): Force GPU compositing on the clip container.
-       iOS Safari sometimes fails to compute `width: max-content` for a flex child
-       inside overflow:hidden on the first layout pass, collapsing the row to 0 height.
-       Promoting the container to its own GPU layer forces a separate compositing step
-       that triggers a correct intrinsic-width measurement of the marquee-inner child. */
-    -webkit-transform: translateZ(0) !important;
-    transform: translateZ(0) !important;
+    /* RC-6 FIX: removed RC-3's translateZ(0)/GPU-layer promotion on this
+       (static, never-transformed) clip container. It was added to coax
+       WebKit into correctly measuring the width:max-content child below,
+       back before RC-5 pinned this element's height explicitly. RC-5 makes
+       that measurement irrelevant — this box's size no longer depends on
+       it at all. Left in place, it did nothing but stack a second,
+       permanent GPU compositing layer directly on top of the one
+       .marquee-inner below already needs for its own per-frame transform.
+       Two nested composited layers, one of them static and pointless, on
+       an absolutely-positioned section is a known trigger for WebKit
+       silently blanking a layer's content under memory/tile pressure and
+       never repainting it — matching "row vanishes, never recovers"
+       exactly. Removing the redundant layer here isn't a guess about what
+       WebKit does; it's removing complexity that already had no remaining
+       job to do. */
   }
 
   .cards-grid::-webkit-scrollbar {
