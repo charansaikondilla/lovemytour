@@ -1459,7 +1459,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isHidden = i >= destList.length;
         cardsHTML += `
           <a href="#category/${dest.id}" class="country-photo-card"${isHidden ? ' aria-hidden="true"' : ''}>
-            <img src="${dest.image}" alt="${dest.name}" class="country-photo-img" decoding="async" />
+            <img src="${cardThumb(dest.image)}" data-full="${dest.image}" alt="${dest.name}" class="country-photo-img" decoding="async" onerror="if(this.dataset.full&&this.src.indexOf('card-thumbs')>-1){this.src=this.dataset.full;}" />
             <div class="country-photo-gradient"></div>
             <span class="country-card-tag">${dest.tag}</span>
             <div class="country-photo-info">
@@ -1650,10 +1650,39 @@ document.addEventListener('DOMContentLoaded', () => {
     // property, for the invalid-at-computed-value-time reason above.
     if (!Number.isFinite(seconds)) return;
     track.style.setProperty('--marquee-duration', seconds.toFixed(2) + 's');
+
+    // RC-19 FIX: drive the keyframes with an absolute pixel distance rather
+    // than -50%. A percentage translate resolves against the element's own
+    // border-box width, and this element is `width: max-content` inside a
+    // flex parent — a width the engine derives rather than is given. If that
+    // resolution is ever even slightly out of step with the laid-out content
+    // (a relayout mid-animation: address bar collapsing and changing svh,
+    // an orientation change, a late reflow), the track stops travelling
+    // exactly one copy per iteration. It then no longer lines up at the loop
+    // point, and a strip of empty track shows at the seam — precisely the
+    // "the countries end / there is blank space" report. A pixel distance
+    // measured from the DOM cannot drift from the content it describes.
+    // The CSS keeps `50%` as the var() fallback, so the animation is still
+    // correct if this never runs.
+    track.style.setProperty('--marquee-shift', Math.round(loopWidth) + 'px');
   }
 
   function marqueeTrackIn(row) {
     return row.querySelector('.marquee-inner, .continent-marquee-track');
+  }
+
+  // RC-19: point a card at its width-capped derivative (see
+  // generate_card_thumbs.py). A browser keeps a decoded bitmap at the file's
+  // INTRINSIC size — 4 bytes per pixel — no matter how small the card is on
+  // screen. These cards render at ~190x230 on a phone while the sources are
+  // 1000x1250 and 1408x768, which measured 155 MB of decoded image data on
+  // the Continents page. iOS Safari's ceiling is far below that, and it
+  // reacts by discarding decoded images and layer backing stores, leaving a
+  // row that still occupies its height and still animates but paints nothing.
+  // The 480px-wide derivatives cut that 123.6 MB -> 25.8 MB (79%).
+  function cardThumb(path) {
+    if (!path || !path.startsWith('assets/') || path.startsWith('assets/card-thumbs/')) return path;
+    return 'assets/card-thumbs/' + path.slice('assets/'.length);
   }
 
   // RC-17 FIX — the "short row" bug, and the real reason North America and
@@ -1859,14 +1888,38 @@ document.addEventListener('DOMContentLoaded', () => {
     rows.forEach((row) => {
       const track = marqueeTrackIn(row);
       if (!track || initMarquees.seen.has(row)) return;
+
+      // RC-19 FIX: do NOT mark this row done until it could actually be
+      // measured. Both ensureMarqueeFill and tuneMarqueeSpeed bail out when
+      // the row measures 0 wide, which happens on a phone more often than on
+      // a desktop: the Global Safari section is position:absolute at
+      // top:85svh, so it can be laid out late, and iOS additionally relayouts
+      // when the address bar collapses. Marking the row seen before that
+      // check (as RC-17 did) permanently skipped filling AND left the default
+      // duration, with no retry — a row could be left short for the whole
+      // session, which is exactly "the cards run out and it goes blank".
+      if (!row.getBoundingClientRect().width) {
+        initMarquees.retry = true;
+        return;
+      }
       initMarquees.seen.add(row);
       // Order matters: fill first, because it changes the track's width and
-      // therefore the duration needed to keep this row at the shared speed.
+      // therefore both the shift distance and the duration.
       ensureMarqueeFill(row, track);
       tuneMarqueeSpeed(track);
       enableMarqueeDrag(row, track);
       initMarquees.observer.observe(row);
     });
+
+    // If any row was not measurable yet, come back for it. rAF lands after
+    // the next layout, which is normally enough; the timer covers the case
+    // where the section is still being positioned (late webfont, svh change,
+    // image-driven reflow). Bounded so a permanently 0-width row cannot spin.
+    if (initMarquees.retry && (initMarquees.retries = (initMarquees.retries || 0) + 1) <= 20) {
+      initMarquees.retry = false;
+      requestAnimationFrame(() => initMarquees());
+      setTimeout(() => initMarquees(), 400);
+    }
   }
 
   // Card widths change at the mobile breakpoint, so loop width — and
