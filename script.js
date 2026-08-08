@@ -177,27 +177,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // 1.2 (removed) Legacy scroll-driven canvas/cloud hero effects - the hero now uses a
   //     plain crossfade photo slideshow, so no scroll-linked background work is needed.
 
-  // 1.3 SAFARI CAROUSEL — draggable, auto-scrolling marquee (see
-  //     initDraggableMarquees, defined later in this file, for how the
-  //     motion/drag itself works).
-  initDraggableMarquees('.destinations-container .cards-grid', '.marquee-inner', {
+  // 1.3 SAFARI CAROUSEL — RC-10 FIX: rebuilt on native scrollLeft instead of
+  //     a JS-driven `transform` (see initGlobalSafariMarquees below, and the
+  //     RC-10 comment on .cards-grid in styles.css, for the full reasoning
+  //     — nine rounds of patching WebKit's handling of a custom transform
+  //     layer weren't converging, so this removes that mechanism instead of
+  //     further mitigating it). Continents' rows are untouched: they still
+  //     use initDraggableMarquees below, unchanged.
+  initGlobalSafariMarquees('.destinations-container .cards-grid', '.marquee-inner', {
     secondsPerLoop: 32,
-    isReverse: (track) => track.classList.contains('marquee-reverse'),
-    // RC-8 FIX: re-enabled, now backed by the synchronous rect-check +
-    // forced-repaint-on-return mechanism in initDraggableMarquees (see its
-    // "RC-8 FIX" comment) instead of the old IntersectionObserver. Real
-    // screenshots showed this row's content going blank specifically on
-    // scroll in both directions while its layout height stayed correct —
-    // continuously writing `transform` to an off-screen row every frame
-    // (what `false` here did) is a known trigger for WebKit failing to
-    // repaint it once scrolled back into view.
-    useVisibilityGating: true,
-    // RC-9 FIX: confirmed via a real on-device retest (fresh, post-RC-8
-    // deploy) that RC-8's pause+repaint-on-scroll-return alone wasn't
-    // enough — rows still went blank. This forces the same repaint every
-    // 2s unconditionally, so whatever WebKit is doing internally, no row
-    // can stay blank for more than ~2 seconds before self-correcting.
-    periodicRepaintMs: 2000
+    isReverse: (track) => track.classList.contains('marquee-reverse')
   });
 
   // 1.4 HERO COUNTRY SEARCH — type a country, jump straight to its package page.
@@ -1576,10 +1565,125 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================================================
+  // GLOBAL SAFARI MARQUEE — RC-10: native-scroll-driven (see the RC-10
+  // comment on .cards-grid in styles.css for the full reasoning). Auto-scroll
+  // is real `scrollLeft`, incremented every frame and wrapped with duplicated
+  // content for a seamless loop — never a `transform`, and never a custom
+  // pointer-capture drag implementation. Touch/mouse dragging is entirely
+  // native (the browser's own horizontal scroll handling); this code only
+  // pauses its own auto-increment while a pointer is down, and lets the
+  // browser do 100% of the actual dragging/momentum.
+  //
+  // This function is Global-Safari-only. Continents keeps using the
+  // transform-based initDraggableMarquees below, completely unchanged — it
+  // was never reported to have this bug, so it isn't touched.
+  function initGlobalSafariMarquees(wrapperSelector, trackSelector, { secondsPerLoop, isReverse }) {
+    const wrappers = document.querySelectorAll(wrapperSelector);
+
+    const debugOn = /(?:^|[?&])safaridebug(?:=|&|$)/.test(location.search);
+    if (debugOn) {
+      window.__marqueeDebugRows = window.__marqueeDebugRows || [];
+      if (!window.__marqueeDebugHudStarted) {
+        window.__marqueeDebugHudStarted = true;
+        const hud = document.createElement('div');
+        hud.id = 'marqueeDebugHud';
+        hud.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99999;background:rgba(0,0,0,0.88);color:#0f0;font:10px/1.4 monospace;padding:6px 8px;max-height:40vh;overflow:auto;white-space:pre;pointer-events:none;';
+        document.body.appendChild(hud);
+        setInterval(() => {
+          const now = performance.now();
+          hud.textContent = window.__marqueeDebugRows.map((d) => {
+            const sinceTick = ((now - d.lastTick) / 1000).toFixed(1);
+            const stalled = (now - d.lastTick) > 1000 ? ' *** STALLED ***' : '';
+            return `${d.label}: h=${d.height.toFixed(0)}px scrollLeft=${d.position} tick=${sinceTick}s ago${stalled}${d.lastError ? ' ERR=' + d.lastError : ''}`;
+          }).join('\n');
+        }, 500);
+      }
+    }
+
+    wrappers.forEach((wrapper, rowIndex) => {
+      const track = wrapper.querySelector(trackSelector);
+      if (!track) return;
+
+      const reverse = isReverse(track);
+      let loopWidth = track.scrollWidth / 2; // content is duplicated once for a seamless loop
+
+      function remeasure() {
+        loopWidth = track.scrollWidth / 2;
+      }
+      window.addEventListener('resize', remeasure);
+
+      // Reverse rows start at the loop boundary so they have room to count
+      // down from the very first frame instead of underflowing to negative
+      // scrollLeft (which clamps to 0 in every browser, not wrapping).
+      wrapper.scrollLeft = reverse ? loopWidth : 0;
+
+      let dragging = false;
+      let resumeAt = 0; // performance.now() timestamp; auto-scroll stays off until this passes (grace period after a manual drag, so momentum scrolling isn't fought)
+      let lastFrameTime = null;
+
+      const diag = debugOn ? { label: `${wrapperSelector.replace(/^.*\s/, '')}[${rowIndex}]`, lastTick: performance.now(), height: 0, position: '0', lastError: null } : null;
+      if (diag) window.__marqueeDebugRows.push(diag);
+
+      function wrapScroll() {
+        if (loopWidth <= 0) return;
+        if (wrapper.scrollLeft >= loopWidth) wrapper.scrollLeft -= loopWidth;
+        else if (wrapper.scrollLeft <= 0) wrapper.scrollLeft += loopWidth;
+      }
+
+      function frame(now) {
+        try {
+          if (lastFrameTime === null) lastFrameTime = now;
+          const dt = Math.min((now - lastFrameTime) / 1000, 0.1);
+          lastFrameTime = now;
+
+          if (loopWidth <= 0) remeasure();
+
+          // Also pause while any full-screen modal (e.g. the 5-second
+          // auto-popup enquiry form) is open — no reason to keep scrolling
+          // content the visitor can't see. Reads the modal's own state;
+          // doesn't modify it.
+          const modalOpen = !!document.querySelector('.modal-overlay.active');
+
+          if (!dragging && !modalOpen && now >= resumeAt && loopWidth > 0) {
+            const pxPerSecond = loopWidth / secondsPerLoop;
+            wrapper.scrollLeft += (reverse ? -1 : 1) * pxPerSecond * dt;
+          }
+          wrapScroll(); // applies regardless of who moved scrollLeft — auto-increment above, or a manual drag in progress
+
+          if (diag) {
+            diag.lastTick = now;
+            diag.height = wrapper.getBoundingClientRect().height;
+            diag.position = wrapper.scrollLeft.toFixed(0);
+          }
+        } catch (err) {
+          if (window.console && console.warn) console.warn('marquee frame error (recovered):', err);
+          if (diag) diag.lastError = String(err && err.message || err);
+        } finally {
+          requestAnimationFrame(frame);
+        }
+      }
+      requestAnimationFrame(frame);
+
+      // No preventDefault, no setPointerCapture — the browser handles the
+      // entire drag/momentum natively. This just pauses the auto-increment
+      // above while a pointer is down, and gives native momentum scrolling
+      // a moment to settle before resuming.
+      wrapper.addEventListener('pointerdown', () => { dragging = true; });
+      ['pointerup', 'pointercancel', 'pointerleave'].forEach((evt) => {
+        wrapper.addEventListener(evt, () => {
+          dragging = false;
+          resumeAt = performance.now() + 600;
+        });
+      });
+    });
+  }
+
+  // ==========================================================================
   // UNIFIED DRAGGABLE / AUTO-SCROLLING MARQUEE
-  // Used by both the Global Safari rows (home page) and the Continents page
-  // rows. Motion is 100% JS/requestAnimationFrame driven — never a CSS
-  // @keyframes animation. That matters for two reasons:
+  // Used by the Continents page rows (Global Safari now uses the
+  // native-scroll-driven initGlobalSafariMarquees above instead — see its
+  // comment for why). Motion is 100% JS/requestAnimationFrame driven — never
+  // a CSS @keyframes animation. That matters for two reasons:
   //   1. iOS Safari has a documented history (see the RC-3/RC-4 fixes
   //      elsewhere in styles.css) of silently pausing or losing track of
   //      long-running CSS animations, which is exactly what made the Global

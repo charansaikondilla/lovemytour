@@ -1859,37 +1859,47 @@ body {
   }
 
   /* ── Safari Auto-Scroll Rows ─────────────────────────── */
+  /* RC-10 FIX: this whole bug's history (RC-1 through RC-9) was chasing
+     WebKit's handling of a custom, JS-driven `transform` on a continuously
+     animated compositing layer — every mitigation attempted (promote it,
+     un-promote it, pause it, force-repaint it, force-repaint it on a
+     timer) reduced but never eliminated real on-device reports. Rather
+     than keep patching that mechanism, this row is now driven by real
+     native horizontal scrolling (`overflow-x: auto` + JS incrementing
+     `scrollLeft`) instead of `transform`. Native scroll compositing is one
+     of WebKit's most mature, heavily-used code paths on iOS — it's core to
+     the platform working at all — which makes it far less likely to hit
+     the kind of rare compositor bug this custom transform-loop pattern
+     kept running into. It also gets real native touch-drag for free, with
+     no custom pointer-capture code needed (see initGlobalSafariMarquees in
+     script.js) — removing an entire earlier-diagnosed bug class
+     ("pointer capture was hijacking scroll") structurally rather than
+     mitigating it. */
   .cards-grid {
     display: flex !important;
     flex-direction: row !important;
     gap: 0 !important;
-    overflow: hidden !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    /* The page sets `scroll-behavior: smooth` on <body>, which is inherited
+       by any scrollable descendant unless overridden — without this, every
+       small per-frame scrollLeft increment below would get queued as its
+       own smooth-scroll animation instead of applying instantly, turning
+       the auto-scroll into a stutter instead of continuous motion. */
+    scroll-behavior: auto !important;
+    /* Keeps a horizontal fling here from also triggering vertical page
+       bounce/rubber-banding or a browser back/forward swipe gesture. */
+    overscroll-behavior-x: contain !important;
     padding: 2px 0 !important;
     margin: 0 !important;
     width: 100% !important;
     /* RC-5 FIX: explicit height (125px card + 2px padding top/bottom),
        instead of trusting it to be correctly derived through the
-       width:max-content flex child below. This height no longer depends on
-       WebKit correctly deriving anything, which is what made RC-3's
-       translateZ(0) hint below unnecessary — see RC-6 FIX. */
+       width:max-content flex child below. */
     height: 129px !important;
     position: relative !important;
     scrollbar-width: none !important;
-    /* RC-6 FIX: removed RC-3's translateZ(0)/GPU-layer promotion on this
-       (static, never-transformed) clip container. It was added to coax
-       WebKit into correctly measuring the width:max-content child below,
-       back before RC-5 pinned this element's height explicitly. RC-5 makes
-       that measurement irrelevant — this box's size no longer depends on
-       it at all. Left in place, it did nothing but stack a second,
-       permanent GPU compositing layer directly on top of the one
-       .marquee-inner below already needs for its own per-frame transform.
-       Two nested composited layers, one of them static and pointless, on
-       an absolutely-positioned section is a known trigger for WebKit
-       silently blanking a layer's content under memory/tile pressure and
-       never repainting it — matching "row vanishes, never recovers"
-       exactly. Removing the redundant layer here isn't a guess about what
-       WebKit does; it's removing complexity that already had no remaining
-       job to do. */
   }
 
   .cards-grid::-webkit-scrollbar {
@@ -1898,7 +1908,9 @@ body {
 
 
 
-  /* ── Marquee inner wrapper — ONE element animates, both card sets move together ── */
+  /* ── Marquee inner wrapper — holds both card sets; the scroll position
+       lives on .cards-grid now, not on a transform here (see RC-10 FIX
+       above), so this is a plain static layout box again. ── */
   .marquee-inner {
     display: flex !important;
     flex-direction: row !important;
@@ -1910,15 +1922,7 @@ body {
        matches .card's mobile height (125px) directly instead of relying on
        it being derived correctly. */
     height: 125px !important;
-    will-change: transform !important;
     flex-shrink: 0 !important;
-    /* Kept for GPU compositing quality even though motion is now JS-driven
-       (see the base .marquee-inner rule near the top of this file for why
-       there's no `animation:` property here anymore). */
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-    backface-visibility: hidden !important;
-    -webkit-backface-visibility: hidden !important;
   }
 
   /* Legacy rule — keep for fallback only, no animation */
