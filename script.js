@@ -1643,24 +1643,52 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       function frame(now) {
-        if (lastFrameTime === null) lastFrameTime = now;
-        // Clamp elapsed time: if the tab was backgrounded and rAF was
-        // suspended (normal browser behavior), the next frame's "now" can
-        // be minutes ahead of the last one. Without a clamp, position would
-        // jump an enormous, essentially random distance in a single frame
-        // the moment the tab becomes visible again — not the same bug as
-        // rows disappearing, but the same family of "looks broken after
-        // being away for a while."
-        const dt = Math.min((now - lastFrameTime) / 1000, 0.1);
-        lastFrameTime = now;
+        // RC-6 FIX: the entire body is now inside try/finally. Every prior
+        // fix in this function's history assumed the rAF chain itself was
+        // reliable and only the visible symptoms (blur cost, stuck
+        // isVisible flag, 0-height rows) needed fixing. But this function
+        // was never guarded against its own exceptions: if anything in the
+        // body below throws on a given tick — a transient read racing a
+        // WebKit reflow, or any other edge case — the `requestAnimationFrame
+        // (frame)` call at the bottom never runs, because a thrown error
+        // unwinds straight out of this rAF callback. That row's loop then
+        // stops forever on that exact tick and never recovers, which is
+        // indistinguishable from "the row disappeared" and matches the
+        // reported shape precisely: fine for a while, then permanently
+        // stuck, one row at a time before the rest follow. Moving the
+        // reschedule into `finally` means a bad frame can, at worst, skip
+        // one frame's worth of motion — it can never again take the whole
+        // row down for the rest of the session.
+        try {
+          if (lastFrameTime === null) lastFrameTime = now;
+          // Clamp elapsed time: if the tab was backgrounded and rAF was
+          // suspended (normal browser behavior), the next frame's "now" can
+          // be minutes ahead of the last one. Without a clamp, position would
+          // jump an enormous, essentially random distance in a single frame
+          // the moment the tab becomes visible again — not the same bug as
+          // rows disappearing, but the same family of "looks broken after
+          // being away for a while."
+          const dt = Math.min((now - lastFrameTime) / 1000, 0.1);
+          lastFrameTime = now;
 
-        if (isVisible && !dragging && now >= resumeAt && loopWidth > 0) {
-          const pxPerSecond = loopWidth / secondsPerLoop;
-          position += direction * pxPerSecond * dt;
-          wrapPosition();
-          applyTransform();
+          if (loopWidth <= 0) remeasure(); // self-heal a bad/zero measurement instead of staying stuck at it
+
+          if (isVisible && !dragging && now >= resumeAt && loopWidth > 0) {
+            const pxPerSecond = loopWidth / secondsPerLoop;
+            position += direction * pxPerSecond * dt;
+            wrapPosition();
+            applyTransform();
+          }
+        } catch (err) {
+          // Swallow and keep going — see RC-6 FIX above. A stuck/frozen row
+          // is a much smaller problem than a permanently dead one, and this
+          // is the only signal we'll get if it ever actually fires on a real
+          // device, so it's worth keeping visible in the console rather than
+          // silently discarding it.
+          if (window.console && console.warn) console.warn('marquee frame error (recovered):', err);
+        } finally {
+          requestAnimationFrame(frame);
         }
-        requestAnimationFrame(frame);
       }
       requestAnimationFrame(frame);
 
