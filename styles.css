@@ -5979,7 +5979,8 @@ body {
 
 .continent-marquee-track {
   display: flex;
-  gap: 20px;
+  /* Spacing is margin-right on the cards below, NOT gap — see the `gap: 0`
+     and the .marquee-inner comment for why gap breaks the -50% loop. */
   width: max-content;
   min-width: max-content;
   /* Explicit height matching .country-photo-card — see
