@@ -187,6 +187,14 @@ document.addEventListener('DOMContentLoaded', () => {
   //     debugged remotely, so the mechanism itself was removed rather than
   //     patched again. The cards stay clickable via the delegated
   //     `.view-package-trigger` handler further down this file.
+  //
+  //     RC-17: still no per-frame JavaScript. initMarquees() below runs once
+  //     to measure each row's duration and register it with the shared
+  //     IntersectionObserver that releases a row's GPU layer while it is far
+  //     offscreen. The rows animate by default in CSS, so if this call (or
+  //     the observer) never runs, the rows still scroll — it is an
+  //     optimisation, never a prerequisite for them rendering.
+  initMarquees();
 
   // 1.4 HERO COUNTRY SEARCH — type a country, jump straight to its package page.
   // Builds its index straight from packagesData.js so every category added
@@ -1477,11 +1485,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     isContinentsRendered = true;
     initContinentsHeroSlider();
-    initDraggableMarquees('.continent-marquee-wrapper', '.continent-marquee-track', {
-      secondsPerLoop: 30,
-      isReverse: (track) => track.classList.contains('reverse'),
-      useVisibilityGating: true // unchanged — do not touch the Continents page's behavior
-    });
+    // RC-17: the Continents rows are now animated by the same compositor CSS
+    // animation as every other marquee on the site (see
+    // .continent-marquee-track in styles.css). This call only measures each
+    // row to set its per-row duration and registers it with the shared
+    // visibility observer — it runs no per-frame code.
+    initMarquees();
     initContinentsSearch();
   }
 
@@ -1572,261 +1581,203 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================================================
-  // UNIFIED DRAGGABLE / AUTO-SCROLLING MARQUEE
-  // Used by the Continents page rows (Global Safari now uses the
-  // native-scroll-driven initGlobalSafariMarquees above instead — see its
-  // comment for why). Motion is 100% JS/requestAnimationFrame driven — never
-  // a CSS @keyframes animation. That matters for two reasons:
-  //   1. iOS Safari has a documented history (see the RC-3/RC-4 fixes
-  //      elsewhere in styles.css) of silently pausing or losing track of
-  //      long-running CSS animations, which is exactly what made the Global
-  //      Safari rows appear to "stop" scrolling after a while on iPhone. A
-  //      position value that this code increments and wraps every frame has
-  //      no animation-iteration-count for the browser to lose track of.
-  //   2. A plain CSS animation can't be manually dragged. Driving position
-  //      from JS means drag-to-scroll (mouse or touch, via Pointer Events)
-  //      is just "temporarily let the user set the position instead of the
-  //      clock" — the same code path handles both.
+  // MARQUEE CONTROLLER — RC-17
   //
-  // wrapperSelector: the overflow:hidden clipping element (drag target).
-  // trackSelector: its child that actually holds the (duplicated-for-loop)
-  //                cards and receives the translateX.
-  // secondsPerLoop: how long one full pass through the (single, not
-  //                 doubled) card set should take — lower is faster.
-  // isReverse(track): return true if this particular track should scroll
-  //                    the opposite direction (e.g. every other row).
-  function initDraggableMarquees(wrapperSelector, trackSelector, { secondsPerLoop, isReverse, useVisibilityGating = true }) {
-    const wrappers = document.querySelectorAll(wrapperSelector);
+  // This replaces initDraggableMarquees, a 256-line requestAnimationFrame
+  // engine that drove the Continents rows by writing `track.style.transform`
+  // every frame. With seven continent rows live at once that is seven DOM
+  // writes and seven style recalculations per frame, on the same main thread
+  // that is decoding card images and servicing touch — which is why the
+  // Continents rows hitch and stall on a phone.
+  //
+  // All motion is now a compositor-driven CSS @keyframes animation declared
+  // in styles.css, identical in mechanism to .domestic-marquee-track — the
+  // one marquee on this site never reported broken on the reporter's iPhone.
+  // Nothing below runs per frame. There are exactly two jobs left:
+  //
+  //   1. Measure each row once to set its own animation duration, so rows
+  //      with different card counts still drift at the same visual speed.
+  //   2. Keep a row's GPU layer alive ONLY while it is near the viewport.
+  //
+  // Job 2 is the important one. Every marquee track used to carry
+  // `will-change: transform` permanently, which pins a permanent composited
+  // layer per row — 3 on the home page, 7 on Continents — whether or not the
+  // row is anywhere near the screen. That is precisely the case MDN warns
+  // about, and iOS Safari's response to GPU memory pressure is to drop layer
+  // backing stores: the row stays laid out at full height and its animation
+  // keeps running, but it paints as nothing. A blank row of the correct
+  // height is exactly what was reported, and exactly what the screenshots
+  // show.
+  //
+  // TRADE-OFF, stated plainly: drag-to-scroll is gone from the Continents
+  // rows, as it already was from Global Safari in RC-15. Continuous reliable
+  // motion was the requirement; the drag implementation is also what caused
+  // an earlier scroll bug (pointer capture hijacking page scroll, 7fb77bd).
+  // ==========================================================================
 
-    // RC-7 DIAGNOSTIC: opt-in only (append ?safaridebug to the URL — never
-    // runs for normal visitors). This bug's history is six rounds of
-    // theories that each looked right and turned out wrong once tested for
-    // real, because there's no way to inspect an iPhone's actual state from
-    // here. This puts a live readout of each row's real state directly on
-    // the screen it's failing on: last tick time (did the loop actually
-    // stall, or is it still running but not painting?), measured height (a
-    // real CSS collapse vs a paint-only issue look identical to the eye but
-    // very different here), and any caught JS error. If it happens again,
-    // a screenshot of this HUD is worth more than another guess.
-    const debugOn = /(?:^|[?&])safaridebug(?:=|&|$)/.test(location.search);
-    if (debugOn) {
-      window.__marqueeDebugRows = window.__marqueeDebugRows || [];
-      if (!window.__marqueeDebugHudStarted) {
-        window.__marqueeDebugHudStarted = true;
-        const hud = document.createElement('div');
-        hud.id = 'marqueeDebugHud';
-        hud.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99999;background:rgba(0,0,0,0.88);color:#0f0;font:10px/1.4 monospace;padding:6px 8px;max-height:40vh;overflow:auto;white-space:pre;pointer-events:none;';
-        document.body.appendChild(hud);
-        setInterval(() => {
-          const now = performance.now();
-          hud.textContent = window.__marqueeDebugRows.map((d) => {
-            const sinceTick = ((now - d.lastTick) / 1000).toFixed(1);
-            const stalled = (now - d.lastTick) > 1000 ? ' *** STALLED ***' : '';
-            return `${d.label}: h=${d.height.toFixed(0)}px pos=${d.position} tick=${sinceTick}s ago${stalled}${d.lastError ? ' ERR=' + d.lastError : ''}`;
-          }).join('\n');
-        }, 500);
-      }
+  // One shared drift speed, in CSS pixels per second, for every marquee.
+  // Continents rows vary wildly in length (Asia has many destinations,
+  // Antarctica has two), so a single fixed duration would make short rows
+  // crawl and long rows race. Deriving each row's duration from its own
+  // width keeps them all visually consistent.
+  // NOTE ON PLACEMENT: initMarquees() is called from section 1.3 far above,
+  // which executes long before this point in the IIFE body. Everything here
+  // is therefore a hoisted `function` declaration, and all mutable state
+  // lives on initMarquees itself rather than in module-level `const`/`let`.
+  // Module-level bindings would be in the temporal dead zone at that first
+  // call (an outright ReferenceError), and switching them to `var` would be
+  // worse-but-silent: the initialiser would run later and reset state the
+  // first call had already built, leaving a second orphaned observer.
+
+  // The markup for every marquee contains the card set TWICE, and the
+  // keyframes translate by exactly -50% — one full copy. So one loop covers
+  // scrollWidth / 2.
+  function tuneMarqueeSpeed(track) {
+    // The shared drift speed lives INSIDE this function on purpose. As a
+    // module-level `const` it would be in the temporal dead zone at the
+    // section-1.3 call; as a `tuneMarqueeSpeed.pxPerSecond = 40` statement it
+    // would still be `undefined` at that call, because that assignment runs
+    // ~1400 lines later in the IIFE body. Either way the arithmetic yields
+    // NaN and we write "NaNs" into --marquee-duration, which makes the whole
+    // `animation` shorthand invalid at computed-value time — animation-name
+    // resolves to none and every row silently stops dead. A local const
+    // cannot be sequenced wrong.
+    const pxPerSecond = 40;
+    const loopWidth = track.scrollWidth / 2;
+    if (loopWidth <= 0) return;
+    const seconds = Math.max(12, loopWidth / pxPerSecond);
+    // Belt-and-braces: never write a non-finite value into the custom
+    // property, for the invalid-at-computed-value-time reason above.
+    if (!Number.isFinite(seconds)) return;
+    track.style.setProperty('--marquee-duration', seconds.toFixed(2) + 's');
+  }
+
+  function marqueeTrackIn(row) {
+    return row.querySelector('.marquee-inner, .continent-marquee-track');
+  }
+
+  // RC-17 FIX — the "short row" bug, and the real reason North America and
+  // Antarctica were the continents that kept misbehaving.
+  //
+  // Every marquee ships its card set exactly TWICE and the keyframes
+  // translate -50%, i.e. by one copy. That is only seamless if one copy is at
+  // least as wide as the visible row. For most continents it is. It is not
+  // for the short ones: measured at desktop width, Antarctica's whole track
+  // was 1040px inside a 1286px wrapper — one copy is 520px, well under half
+  // the viewport — and North America's copy was 780px. As such a row
+  // animates, it slides its content out and there is simply nothing behind
+  // it, so the row shows blank space and then snaps. Card count is exactly
+  // what decides it, which is why the two continents with the fewest
+  // destinations (North America 3, Antarctica 2) were the ones reported, and
+  // why this looked like "images not loading" rather than a layout fault.
+  //
+  // Fix: repeat the set enough times that ONE half is at least as wide as the
+  // wrapper, then mirror that half. The track stays exactly two identical
+  // halves, so -50% remains exactly one copy and the loop stays seamless.
+  function ensureMarqueeFill(row, track) {
+    const wrapperWidth = row.getBoundingClientRect().width;
+    if (!wrapperWidth) return;
+
+    // Capture the pristine one-copy "unit" the first time only — at that
+    // point the DOM still holds precisely the two copies the markup shipped.
+    if (!track.__marqueeUnit) {
+      const kids = Array.from(track.children);
+      if (kids.length < 2) return;
+      track.__marqueeUnit = kids.slice(0, Math.floor(kids.length / 2))
+        .map((node) => node.cloneNode(true));
+    }
+    const unit = track.__marqueeUnit;
+    if (!unit.length) return;
+
+    const measure = (nodes) => nodes.reduce((sum, el) => {
+      const style = getComputedStyle(el);
+      return sum + el.getBoundingClientRect().width + (parseFloat(style.marginRight) || 0);
+    }, 0);
+
+    // Measure the unit as currently laid out, so this stays correct across
+    // the mobile breakpoint where card widths change.
+    const live = Array.from(track.children).slice(0, unit.length);
+    const unitWidth = measure(live);
+    if (unitWidth <= 0) return;
+
+    const repeats = Math.max(1, Math.ceil(wrapperWidth / unitWidth));
+    if (track.__marqueeRepeats === repeats) return;
+    track.__marqueeRepeats = repeats;
+
+    const frag = document.createDocumentFragment();
+    for (let copy = 0; copy < repeats * 2; copy++) {
+      unit.forEach((node) => {
+        const clone = node.cloneNode(true);
+        // Only the first half is the "real" content for assistive tech; the
+        // mirrored half is decorative duplication.
+        if (copy >= repeats) clone.setAttribute('aria-hidden', 'true');
+        else clone.removeAttribute('aria-hidden');
+        frag.appendChild(clone);
+      });
+    }
+    track.replaceChildren(frag);
+  }
+
+  // Safe to call more than once — the Continents page renders lazily, so this
+  // runs again after those rows exist. Already-registered rows are skipped.
+  function initMarquees() {
+    const rows = document.querySelectorAll('.cards-grid, .continent-marquee-wrapper');
+    if (!rows.length) return;
+
+    if (!initMarquees.observer) {
+      initMarquees.seen = new WeakSet();
+      initMarquees.observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          const track = marqueeTrackIn(entry.target);
+          // Note the polarity: we ADD .marquee-idle to park an offscreen row,
+          // and rows animate by default in CSS. Never the reverse — see the
+          // .marquee-idle comment in styles.css. If this callback never fires
+          // (or stops firing) the rows keep animating, which is the safe
+          // outcome; gating "is it running?" on this observer is what would
+          // turn an observer hiccup into a permanently frozen row.
+          if (track) track.classList.toggle('marquee-idle', !entry.isIntersecting);
+        });
+      }, {
+        // Un-park a row well BEFORE it scrolls into view, so its layer is
+        // never re-created in the same frame that first paints it.
+        rootMargin: '250px 0px',
+        threshold: 0
+      });
     }
 
-    wrappers.forEach((wrapper, rowIndex) => {
-      const track = wrapper.querySelector(trackSelector);
-      if (!track) return;
-
-      const reverse = isReverse(track);
-      const direction = reverse ? 1 : -1; // -1 = drifts left, 1 = drifts right
-
-      let loopWidth = track.scrollWidth / 2; // content is duplicated once for a seamless loop
-      let position = 0;
-      let dragging = false;
-      let dragStartX = 0;
-      let dragStartPosition = 0;
-      let resumeAt = 0;   // performance.now() timestamp; autoplay stays off until this passes
-      let lastFrameTime = null;
-      // Only true while the row is actually on screen (IntersectionObserver
-      // below, when useVisibilityGating is on) — skipping all work while
-      // scrolled away stops this row from contributing to the GPU/main-
-      // thread load that builds up over a long session elsewhere on the
-      // page. Left permanently `true` when the gating is off, so the row
-      // always keeps animating regardless of scroll position. Global Safari
-      // has this off: if the observer's callback ever simply fails to fire
-      // an update on some iOS condition (isVisible getting stuck at
-      // whatever it last reported), a row gated on it would freeze
-      // permanently — indistinguishable from "the row disappeared," which
-      // is exactly what was reported. Not worth that risk for a background
-      // decorative row; Continents keeps the gating since it wasn't
-      // reported to have this problem.
-      let isVisible = true;
-
-      const diag = debugOn ? { label: `${wrapperSelector.replace(/^.*\s/, '')}[${rowIndex}]`, lastTick: performance.now(), height: 0, position: '0', lastError: null } : null;
-      if (diag) window.__marqueeDebugRows.push(diag);
-
-      function remeasure() {
-        loopWidth = track.scrollWidth / 2;
-      }
-      window.addEventListener('resize', remeasure);
-
-      // RC-16 FIX (Continents regression revert): visibility gating is back
-      // to an IntersectionObserver, exactly as it was before RC-8.
-      //
-      // RC-8 had replaced this with a getBoundingClientRect() call made
-      // inside the animation frame, for EVERY row, on EVERY frame. That was
-      // introduced to chase the Global Safari bug, but this function is
-      // shared — so it silently applied to the Continents page too, despite
-      // a comment at its call site claiming Continents was untouched. On
-      // Continents that meant 7 continent rows each forcing a synchronous
-      // layout read 60x/second, interleaved with transform writes: textbook
-      // layout thrashing, and the likely cause of the North America row
-      // misbehaving on iPhone. An IntersectionObserver does the same job
-      // asynchronously, off the critical path, with zero forced layout.
-      //
-      // Global Safari no longer uses this function at all (it is pure CSS
-      // animation now — see RC-15), so this file is back to having exactly
-      // one consumer: the Continents page.
-      if (useVisibilityGating) {
-        const visibilityObserver = new IntersectionObserver(
-          (entries) => { isVisible = entries[0].isIntersecting; },
-          { threshold: 0 }
-        );
-        visibilityObserver.observe(wrapper);
-      }
-
-      function wrapPosition() {
-        if (loopWidth <= 0) return;
-        // Keep position in (-loopWidth, 0] regardless of which direction it's
-        // currently moving — this is what makes the loop seamless and, more
-        // importantly, makes it structurally impossible for it to "end."
-        while (position <= -loopWidth) position += loopWidth;
-        while (position > 0) position -= loopWidth;
-      }
-
-      function applyTransform() {
-        track.style.transform = `translateX(${position}px)`;
-      }
-
-      function frame(now) {
-        // RC-6 FIX: the entire body is now inside try/finally. Every prior
-        // fix in this function's history assumed the rAF chain itself was
-        // reliable and only the visible symptoms (blur cost, stuck
-        // isVisible flag, 0-height rows) needed fixing. But this function
-        // was never guarded against its own exceptions: if anything in the
-        // body below throws on a given tick — a transient read racing a
-        // WebKit reflow, or any other edge case — the `requestAnimationFrame
-        // (frame)` call at the bottom never runs, because a thrown error
-        // unwinds straight out of this rAF callback. That row's loop then
-        // stops forever on that exact tick and never recovers, which is
-        // indistinguishable from "the row disappeared" and matches the
-        // reported shape precisely: fine for a while, then permanently
-        // stuck, one row at a time before the rest follow. Moving the
-        // reschedule into `finally` means a bad frame can, at worst, skip
-        // one frame's worth of motion — it can never again take the whole
-        // row down for the rest of the session.
-        try {
-          if (lastFrameTime === null) lastFrameTime = now;
-          // Clamp elapsed time: if the tab was backgrounded and rAF was
-          // suspended (normal browser behavior), the next frame's "now" can
-          // be minutes ahead of the last one. Without a clamp, position would
-          // jump an enormous, essentially random distance in a single frame
-          // the moment the tab becomes visible again — not the same bug as
-          // rows disappearing, but the same family of "looks broken after
-          // being away for a while."
-          const dt = Math.min((now - lastFrameTime) / 1000, 0.1);
-          lastFrameTime = now;
-
-          if (loopWidth <= 0) remeasure(); // self-heal a bad/zero measurement instead of staying stuck at it
-
-          if (isVisible && !dragging && now >= resumeAt && loopWidth > 0) {
-            const pxPerSecond = loopWidth / secondsPerLoop;
-            position += direction * pxPerSecond * dt;
-            wrapPosition();
-            applyTransform();
-          }
-          if (diag) {
-            diag.lastTick = now;
-            diag.height = wrapper.getBoundingClientRect().height;
-            diag.position = position.toFixed(0);
-          }
-        } catch (err) {
-          // Swallow and keep going — see RC-6 FIX above. A stuck/frozen row
-          // is a much smaller problem than a permanently dead one, and this
-          // is the only signal we'll get if it ever actually fires on a real
-          // device, so it's worth keeping visible in the console rather than
-          // silently discarding it.
-          if (window.console && console.warn) console.warn('marquee frame error (recovered):', err);
-          if (diag) diag.lastError = String(err && err.message || err);
-        } finally {
-          requestAnimationFrame(frame);
-        }
-      }
-      requestAnimationFrame(frame);
-
-      // ── Manual drag: mouse + touch + pen, unified via Pointer Events ──
-      // Direction-locked: a touch that starts on this row is NOT assumed to
-      // be a drag. It only becomes one once movement is clearly more
-      // horizontal than vertical past a small dead zone — until then we
-      // never call setPointerCapture or touch `position`, so a normal
-      // vertical page-scroll gesture that happens to start on top of this
-      // row passes straight through untouched. Committing immediately (the
-      // previous version of this code) captured the pointer on every touch,
-      // which fights the browser's native scrolling and was corrupting/
-      // visibly breaking whichever row a user's thumb happened to land on
-      // when they scrolled past it — this is what was actually causing rows
-      // to appear broken/invisible, not a GPU or animation issue.
-      wrapper.style.touchAction = 'pan-y'; // let vertical page scroll pass through; JS owns confirmed horizontal drags
-      const DRAG_THRESHOLD_PX = 6;
-
-      let trackingPointerId = null;
-      let downX = 0;
-      let downY = 0;
-
-      function onPointerDown(e) {
-        trackingPointerId = e.pointerId;
-        downX = e.clientX;
-        downY = e.clientY;
-        // Deliberately not setting dragging=true or capturing the pointer
-        // yet — see onPointerMove.
-      }
-
-      function onPointerMove(e) {
-        if (e.pointerId !== trackingPointerId) return;
-
-        if (!dragging) {
-          const dx = e.clientX - downX;
-          const dy = e.clientY - downY;
-          if (Math.abs(dx) < DRAG_THRESHOLD_PX && Math.abs(dy) < DRAG_THRESHOLD_PX) return;
-          if (Math.abs(dy) >= Math.abs(dx)) {
-            // Vertical intent — this is a page scroll, not a carousel drag.
-            // Back off completely for the rest of this touch.
-            trackingPointerId = null;
-            return;
-          }
-          // Horizontal intent confirmed — commit to dragging from here.
-          dragging = true;
-          dragStartX = e.clientX;
-          dragStartPosition = position;
-          if (wrapper.setPointerCapture) {
-            try { wrapper.setPointerCapture(e.pointerId); } catch (err) { /* no-op */ }
-          }
-        }
-
-        position = dragStartPosition + (e.clientX - dragStartX);
-        wrapPosition();
-        applyTransform();
-      }
-
-      function endDrag(e) {
-        trackingPointerId = null;
-        if (!dragging) return;
-        dragging = false;
-        resumeAt = performance.now() + 500; // brief grace period so autoplay doesn't yank the row right after a release
-      }
-
-      wrapper.addEventListener('pointerdown', onPointerDown);
-      wrapper.addEventListener('pointermove', onPointerMove);
-      wrapper.addEventListener('pointerup', endDrag);
-      wrapper.addEventListener('pointercancel', endDrag);
-      wrapper.addEventListener('pointerleave', endDrag);
+    rows.forEach((row) => {
+      const track = marqueeTrackIn(row);
+      if (!track || initMarquees.seen.has(row)) return;
+      initMarquees.seen.add(row);
+      // Order matters: fill first, because it changes the track's width and
+      // therefore the duration needed to keep this row at the shared speed.
+      ensureMarqueeFill(row, track);
+      tuneMarqueeSpeed(track);
+      initMarquees.observer.observe(row);
     });
   }
+
+  // Card widths change at the mobile breakpoint, so loop width — and
+  // therefore the duration that keeps every row at the same speed — has to be
+  // recomputed. Debounced: this reads layout, and it must never end up on a
+  // per-frame path (a forced synchronous layout read inside the animation
+  // frame is what RC-8 got wrong and RC-16 reverted).
+  let marqueeResizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(marqueeResizeTimer);
+    marqueeResizeTimer = setTimeout(() => {
+      document.querySelectorAll('.cards-grid, .continent-marquee-wrapper')
+        .forEach((row) => {
+          const track = marqueeTrackIn(row);
+          if (!track) return;
+          // Card widths change at the breakpoint, so a row that was wide
+          // enough at desktop can become a short row on mobile (and vice
+          // versa). Re-fill before re-timing, same order as init.
+          ensureMarqueeFill(row, track);
+          tuneMarqueeSpeed(track);
+        });
+    }, 200);
+  });
 
   function initContinentsHeroSlider() {
     const slides = document.querySelectorAll('.continents-hero-slide');

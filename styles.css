@@ -591,20 +591,31 @@ body {
 .marquee-inner {
   display: flex !important;
   flex-direction: row !important;
-  gap: 12px !important;
+  /* RC-17 FIX (seamless loop): gap is deliberately 0. `gap` puts space
+     BETWEEN items only, so a duplicated set of N cards measures
+     2N*card + (2N-1)*gap — and translating by -50% therefore moves the
+     track by half a gap LESS than one full copy. That leaves a gap/2 jump
+     at every loop point, which reads as a periodic stutter/shake. Spacing
+     via margin-right on every card (below) makes each card contribute
+     exactly card+gap, so 50% is exactly one copy and the loop is perfect. */
+  gap: 0 !important;
   width: max-content !important;
   min-width: max-content !important;
   flex-shrink: 0 !important;
-  animation: safariMarqueeLeft 32s linear infinite;
-  /* RC-16 FIX: pin this track to one persistent GPU layer for the whole
-     animation. RC-15 declared the animation but none of the layer hints, so
-     these three tracks were the only animating marquees on the site without
-     them. The sibling .domestic-marquee-track — the one marquee on this page
-     never once reported broken on the reporter's iPhone — carries exactly
-     these three properties. Matching it is the whole point. */
+  /* Duration comes from tuneMarqueeSpeed (script.js) so these rows drift at
+     the same px/second as the Continents rows; 32s is the fallback if that
+     measurement has not run yet. */
+  animation: safariMarqueeLeft var(--marquee-duration, 32s) linear infinite;
+  /* Runs by DEFAULT. Only a confirmed-offscreen row is parked, by adding
+     .marquee-idle — never the reverse. See .marquee-idle below for why the
+     polarity matters. */
   will-change: transform;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+}
+
+.marquee-inner>.card {
+  margin-right: 12px !important;
 }
 
 .marquee-inner.marquee-reverse {
@@ -629,6 +640,53 @@ body {
   to {
     transform: translate3d(0, 0, 0);
   }
+}
+
+/* ── RC-17: shared marquee idle gate ────────────────────────────────────
+   Applied by initMarquees() in script.js via one IntersectionObserver, to
+   BOTH the Global Safari rows (.marquee-inner) and the Continents rows
+   (.continent-marquee-track).
+
+   POLARITY IS DELIBERATE AND LOAD-BEARING. Rows animate by default and are
+   only ever PARKED by adding this class. The obvious design — start paused,
+   add a .marquee-live class when the row scrolls in — was written first and
+   rejected, because it makes correct rendering DEPEND on the observer firing.
+   initDraggableMarquees already carried a comment warning about exactly that
+   failure: if the callback never fires on some iOS condition, a row gated on
+   it "would freeze permanently — indistinguishable from 'the row
+   disappeared,' which is exactly what was reported." Starting paused would
+   have rebuilt the reported bug as the default state.
+
+   With this polarity the failure mode is safe in both directions:
+     - Observer never fires  -> no row is ever parked -> everything animates,
+       exactly as it did before this change. No regression.
+     - Observer works        -> offscreen rows release their GPU layer.
+   The optimisation is now strictly additive, which is the only acceptable
+   shape for it given this bug's history.
+
+   Root cause this addresses: a composited layer is only free when there are
+   few of them. The one marquee on this site that has never broken on the
+   reporter's iPhone (.domestic-marquee-track) is also the only one that is
+   ALONE on its section. Global Safari runs 3 tracks at once; Continents runs
+   7 — and every one of them previously held `will-change: transform`
+   permanently, which forces a permanent GPU layer whether or not the row is
+   anywhere near the screen. MDN warns about exactly this: will-change on
+   many elements exhausts GPU memory, and iOS Safari's response to that
+   pressure is to drop layer backing stores — a row that is still laid out
+   and still animating, but paints as blank. That is the reported symptom.
+
+   So: no row holds a layer or burns compositor time unless it is actually
+   near the viewport. Off screen it is paused with will-change cleared, which
+   lets WebKit release the backing store entirely.
+
+   Clearing will-change is what actually lets WebKit release the layer's
+   backing store; pausing alone would keep it resident. rootMargin in the
+   observer un-parks a row well before it scrolls in, so a row is never
+   promoted in the same frame that first paints it. */
+.marquee-inner.marquee-idle,
+.continent-marquee-track.marquee-idle {
+  animation-play-state: paused;
+  will-change: auto;
 }
 
 /* Deliberately NOT gated on prefers-reduced-motion, matching the sibling
@@ -1970,7 +2028,9 @@ body {
   .marquee-inner {
     display: flex !important;
     flex-direction: row !important;
-    gap: 8px !important;
+    /* RC-17: spacing via margin-right, not gap — see the base .marquee-inner
+       rule for why gap breaks the -50% seamless loop. */
+    gap: 0 !important;
     width: max-content !important;
     /* RC-3 FIX (part 2): belt-and-suspenders for WebKit max-content computation */
     min-width: max-content !important;
@@ -1986,14 +2046,19 @@ body {
     display: contents !important;
   }
 
+  .marquee-inner>.card {
+    margin-right: 8px !important;
+  }
+
   .card {
     flex: 0 0 170px !important;
     height: 125px !important;
     border-radius: 18px !important;
     border: 1.5px solid rgba(255, 255, 255, 0.25) !important;
     /* No backdrop-filter here (was blur(12px)) — this card sits inside a row
-       whose position is now updated every animation frame by JS (see
-       initDraggableMarquees in script.js). backdrop-filter has to resample
+       that is in continuous motion (a compositor CSS animation as of RC-15;
+       it was a per-frame JS transform when this was first written).
+       backdrop-filter has to resample
        and re-blur whatever's behind it on every repaint, and with ~50+ card
        instances doing that continuously at up to 120fps on ProMotion
        displays, it was very likely the actual cause of rows going blank
@@ -5889,7 +5954,9 @@ body {
   width: 100%;
   overflow: hidden;
   padding: 8px 0 24px 0;
-  cursor: grab;
+  /* RC-17: no grab cursor — drag-to-scroll is gone with initDraggableMarquees
+     (see .continent-marquee-track). Advertising a grab affordance that does
+     nothing is worse than not showing one. */
   /* Explicit height (280px card + 32px padding, box-sizing:border-box means
      this is the total box) instead of trusting it to be correctly derived
      through the width:max-content flex track this wraps. See
@@ -5918,17 +5985,60 @@ body {
   /* Explicit height matching .country-photo-card — see
      .continent-marquee-wrapper's comment above for why. */
   height: 280px;
-  padding: 0 20px;
+  /* RC-17 FIX: motion is now the SAME compositor-driven CSS animation the
+     Global Safari rows and .domestic-marquee-track use. It replaces
+     initDraggableMarquees' requestAnimationFrame loop, which wrote
+     `track.style.transform` on every frame for all SEVEN continent rows at
+     once — seven per-frame DOM writes plus seven style recalcs per frame,
+     all on the main thread. On a phone that main thread is also decoding
+     images and handling touch, so it saturates and rows visibly hitch or
+     stall. That is the Continents "images scrolling" fault.
+
+     Duration is per-row (--marquee-duration, set once at init by
+     tuneMarqueeSpeed in script.js) because continents have very different
+     card counts — Asia has many, Antarctica has 2 — and a single fixed
+     duration would make short rows crawl and long rows race. It is computed
+     from the row's own loop width so every row drifts at one shared speed.
+
+     padding is 0 (was `0 20px`): side padding is included in the element's
+     width, so translating -50% would no longer equal exactly one copy of the
+     card set and the loop would visibly jump. Same reasoning as the gap ->
+     margin-right change on .marquee-inner. */
+  padding: 0;
+  gap: 0;
+  animation: continentMarqueeLeft var(--marquee-duration, 30s) linear infinite;
+  /* Runs by default; only parked via .marquee-idle — see that rule. */
   will-change: transform;
-  /* No CSS `animation:` here — motion is JS-driven (initDraggableMarquees
-     in script.js). See the Global Safari .marquee-inner comment near the
-     top of this file for why: iOS WebKit has a documented history of
-     silently dropping long-running CSS animations, and a plain CSS
-     animation can't support drag-to-scroll either. */
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+}
+
+.continent-marquee-track>.country-photo-card {
+  margin-right: 20px;
+}
+
+.continent-marquee-track.reverse {
+  animation-name: continentMarqueeRight;
+}
+
+@keyframes continentMarqueeLeft {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes continentMarqueeRight {
+  from {
+    transform: translate3d(-50%, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
 }
 
 /* Country Card Item */
