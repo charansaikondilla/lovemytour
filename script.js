@@ -191,7 +191,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // continuously writing `transform` to an off-screen row every frame
     // (what `false` here did) is a known trigger for WebKit failing to
     // repaint it once scrolled back into view.
-    useVisibilityGating: true
+    useVisibilityGating: true,
+    // RC-9 FIX: confirmed via a real on-device retest (fresh, post-RC-8
+    // deploy) that RC-8's pause+repaint-on-scroll-return alone wasn't
+    // enough — rows still went blank. This forces the same repaint every
+    // 2s unconditionally, so whatever WebKit is doing internally, no row
+    // can stay blank for more than ~2 seconds before self-correcting.
+    periodicRepaintMs: 2000
   });
 
   // 1.4 HERO COUNTRY SEARCH — type a country, jump straight to its package page.
@@ -1592,7 +1598,7 @@ document.addEventListener('DOMContentLoaded', () => {
   //                 doubled) card set should take — lower is faster.
   // isReverse(track): return true if this particular track should scroll
   //                    the opposite direction (e.g. every other row).
-  function initDraggableMarquees(wrapperSelector, trackSelector, { secondsPerLoop, isReverse, useVisibilityGating = true }) {
+  function initDraggableMarquees(wrapperSelector, trackSelector, { secondsPerLoop, isReverse, useVisibilityGating = true, periodicRepaintMs = 0 }) {
     const wrappers = document.querySelectorAll(wrapperSelector);
 
     // RC-7 DIAGNOSTIC: opt-in only (append ?safaridebug to the URL — never
@@ -1680,21 +1686,45 @@ document.addEventListener('DOMContentLoaded', () => {
       // element's own rect every frame gets the pausing benefit with none of
       // that risk: there's no callback to get stuck, it's just read fresh
       // every tick.
+      function forceRepaint() {
+        // Force WebKit to tear down and rebuild this layer's compositing/
+        // paint backing store instead of assuming nothing changed — see the
+        // RC-8/RC-9 comments below for why this is needed at all.
+        track.style.willChange = 'auto';
+        void track.offsetWidth; // force a synchronous style flush
+        track.style.willChange = 'transform';
+      }
+
       let wasVisible = true;
       function updateVisibility() {
         const rect = wrapper.getBoundingClientRect();
-        isVisible = rect.bottom > 0 && rect.top < (window.innerHeight || document.documentElement.clientHeight);
-        if (isVisible && !wasVisible) {
-          // Regaining visibility after being paused off-screen: force WebKit
-          // to tear down and rebuild this layer's compositing/paint backing
-          // store rather than assuming nothing changed (resuming the same
-          // `transform` value it already had can otherwise look like a
-          // no-op and never trigger a repaint of a decommissioned layer).
-          track.style.willChange = 'auto';
-          void track.offsetWidth; // force a synchronous style flush before re-enabling
-          track.style.willChange = 'transform';
-        }
+        // Also pause while any full-screen modal (e.g. the 5-second
+        // auto-popup enquiry form) is open. It's a fixed, full-viewport
+        // `backdrop-filter: blur()` — while it's showing, WebKit has to
+        // continuously re-blur the whole page behind it, and nothing was
+        // stopping these rows from continuing to update their transform
+        // underneath it at the same time, for content the visitor can't
+        // even see. Reads the modal's own state; doesn't modify it.
+        const modalOpen = !!document.querySelector('.modal-overlay.active');
+        isVisible = !modalOpen && rect.bottom > 0 && rect.top < (window.innerHeight || document.documentElement.clientHeight);
+        // Regaining visibility after being paused off-screen: resuming the
+        // same `transform` value it already had can look like a no-op to the
+        // browser and never trigger a repaint of a decommissioned layer.
+        if (isVisible && !wasVisible) forceRepaint();
         wasVisible = isVisible;
+      }
+
+      // RC-9 FIX: the RC-8 pause+repaint-on-return approach (updateVisibility
+      // above) was tested for real on-device after deploying and the rows
+      // still went blank. Rather than chase a ninth single-cause theory for
+      // a closed-source rendering engine's internal paint/tile management
+      // that can't be inspected or reproduced from here, this forces the
+      // same repaint unconditionally on a timer — independent of visibility,
+      // independent of whatever WebKit's actual internal trigger turns out
+      // to be. Whatever silently drops this layer's painted content, it can
+      // now never stay blank longer than periodicRepaintMs.
+      if (periodicRepaintMs > 0) {
+        setInterval(forceRepaint, periodicRepaintMs);
       }
 
       function wrapPosition() {
