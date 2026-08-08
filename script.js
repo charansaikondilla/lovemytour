@@ -183,7 +183,15 @@ document.addEventListener('DOMContentLoaded', () => {
   initDraggableMarquees('.destinations-container .cards-grid', '.marquee-inner', {
     secondsPerLoop: 32,
     isReverse: (track) => track.classList.contains('marquee-reverse'),
-    useVisibilityGating: false
+    // RC-8 FIX: re-enabled, now backed by the synchronous rect-check +
+    // forced-repaint-on-return mechanism in initDraggableMarquees (see its
+    // "RC-8 FIX" comment) instead of the old IntersectionObserver. Real
+    // screenshots showed this row's content going blank specifically on
+    // scroll in both directions while its layout height stayed correct —
+    // continuously writing `transform` to an off-screen row every frame
+    // (what `false` here did) is a known trigger for WebKit failing to
+    // repaint it once scrolled back into view.
+    useVisibilityGating: true
   });
 
   // 1.4 HERO COUNTRY SEARCH — type a country, jump straight to its package page.
@@ -1654,12 +1662,39 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       window.addEventListener('resize', remeasure);
 
-      if (useVisibilityGating) {
-        const visibilityObserver = new IntersectionObserver(
-          (entries) => { isVisible = entries[0].isIntersecting; },
-          { threshold: 0 }
-        );
-        visibilityObserver.observe(wrapper);
+      // RC-8 FIX: visibility is now computed synchronously, every frame,
+      // straight from getBoundingClientRect() — not via IntersectionObserver.
+      // Real on-device screenshots (not just theory this time) show the
+      // actual failure: layout height stays correct, but the row's painted
+      // content goes blank, specifically tied to scroll gestures in both
+      // directions. That matches a documented WebKit behavior: content
+      // scrolled out of the viewport can have its paint backing store
+      // decommissioned to save memory, and if something keeps writing to
+      // that element's transform every frame while it's off-screen (which
+      // useVisibilityGating:false was doing for Global Safari, specifically
+      // to dodge a different risk — see below), WebKit can fail to
+      // reconstitute/repaint it once it scrolls back into view.
+      // IntersectionObserver was removed for Global Safari two rounds ago
+      // over a real risk (its callback silently not firing would leave
+      // isVisible stuck forever) — but computing it inline from the
+      // element's own rect every frame gets the pausing benefit with none of
+      // that risk: there's no callback to get stuck, it's just read fresh
+      // every tick.
+      let wasVisible = true;
+      function updateVisibility() {
+        const rect = wrapper.getBoundingClientRect();
+        isVisible = rect.bottom > 0 && rect.top < (window.innerHeight || document.documentElement.clientHeight);
+        if (isVisible && !wasVisible) {
+          // Regaining visibility after being paused off-screen: force WebKit
+          // to tear down and rebuild this layer's compositing/paint backing
+          // store rather than assuming nothing changed (resuming the same
+          // `transform` value it already had can otherwise look like a
+          // no-op and never trigger a repaint of a decommissioned layer).
+          track.style.willChange = 'auto';
+          void track.offsetWidth; // force a synchronous style flush before re-enabling
+          track.style.willChange = 'transform';
+        }
+        wasVisible = isVisible;
       }
 
       function wrapPosition() {
@@ -1703,6 +1738,8 @@ document.addEventListener('DOMContentLoaded', () => {
           // being away for a while."
           const dt = Math.min((now - lastFrameTime) / 1000, 0.1);
           lastFrameTime = now;
+
+          if (useVisibilityGating) updateVisibility();
 
           if (loopWidth <= 0) remeasure(); // self-heal a bad/zero measurement instead of staying stuck at it
 
