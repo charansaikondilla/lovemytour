@@ -1897,6 +1897,20 @@ body {
        own smooth-scroll animation instead of applying instantly, turning
        the auto-scroll into a stutter instead of continuous motion. */
     scroll-behavior: auto !important;
+    /* RC-13 FIX: the base (desktop) .cards-grid rule sets
+       scroll-snap-type: x mandatory, and .card sets scroll-snap-align:
+       start !important at every width — neither was ever turned off here.
+       With snap active, every card is a snap point, and the browser
+       continuously tries to pull the scroll position back to the nearest
+       one on every single auto-scroll write this row makes — a real
+       tug-of-war between the browser's snap logic and this row's own JS,
+       many times a second. That's what visible shaking/flickering was:
+       not a rendering bug, a genuine conflict between two systems both
+       trying to own the same scroll position. Snap and continuous
+       JS-driven auto-scroll are fundamentally incompatible; this row only
+       ever wants smooth continuous motion, so snapping is switched off
+       entirely here. */
+    scroll-snap-type: none !important;
     /* Keeps a horizontal fling here from also triggering vertical page
        bounce/rubber-banding or a browser back/forward swipe gesture. */
     overscroll-behavior-x: contain !important;
