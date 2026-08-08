@@ -689,6 +689,29 @@ body {
   will-change: auto;
 }
 
+/* RC-18: held still while the user is actively dragging the row. Set on the
+   ROW (the clipping box), so it also survives the track being rebuilt by
+   ensureMarqueeFill. Pausing is done here in CSS rather than via WAAPI
+   animation.pause(), so that CSS remains the single owner of play state —
+   .marquee-idle above sets the same property, and having WAAPI and CSS both
+   claim it leaves the two fighting. Seeking currentTime from JS is
+   unaffected by this. */
+.marquee-dragging .marquee-inner,
+.marquee-dragging .continent-marquee-track {
+  animation-play-state: paused;
+}
+
+/* Both marquee viewports are draggable — advertise it. */
+.cards-grid,
+.continent-marquee-wrapper {
+  cursor: grab;
+}
+
+.cards-grid:active,
+.continent-marquee-wrapper:active {
+  cursor: grabbing;
+}
+
 /* Deliberately NOT gated on prefers-reduced-motion, matching the sibling
    .domestic-marquee-track in this file. Windows reports "reduce" whenever
    Settings > Accessibility > Visual effects > Animation effects is off —
@@ -5954,9 +5977,8 @@ body {
   width: 100%;
   overflow: hidden;
   padding: 8px 0 24px 0;
-  /* RC-17: no grab cursor — drag-to-scroll is gone with initDraggableMarquees
-     (see .continent-marquee-track). Advertising a grab affordance that does
-     nothing is worse than not showing one. */
+  /* Grab cursor lives in the shared .cards-grid/.continent-marquee-wrapper
+     rule near the top of this file — dragging came back in RC-18. */
   /* Explicit height (280px card + 32px padding, box-sizing:border-box means
      this is the total box) instead of trusting it to be correctly derived
      through the width:max-content flex track this wraps. See

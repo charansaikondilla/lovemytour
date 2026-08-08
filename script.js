@@ -1718,6 +1718,117 @@ document.addEventListener('DOMContentLoaded', () => {
     track.replaceChildren(frag);
   }
 
+  // RC-18: manual swipe/drag, restored — without a scroll container.
+  //
+  // RC-17 removed dragging and that was wrong: swiping a row is expected
+  // behaviour on both phones, and losing it was reported immediately.
+  //
+  // The obvious way back is `overflow-x: auto` on the row. That is what
+  // RC-10..RC-14 did and it is deliberately NOT what this does, for two
+  // measured reasons:
+  //   - It needs the auto-drift transform and the scroll offset to coexist.
+  //     Because the drift can shift a full copy on top of whatever the user
+  //     scrolled to, the track has to carry ~4 copies instead of 2 to
+  //     guarantee content under the viewport at every combination. For the
+  //     Asia row that is a ~10,000px-wide composited layer on a phone — the
+  //     exact GPU pressure that makes iOS drop a row's backing store.
+  //   - A real scroll container is what dragged in scroll-snap, momentum and
+  //     touch-action conflicts, which is where the Android page-scroll
+  //     regression came from.
+  //
+  // Instead the CSS animation stays the ONE source of motion, and a drag just
+  // seeks it: moving the finger by dx sets the animation's currentTime to the
+  // moment where the track sits dx further along. The loop stays infinite for
+  // free, because the animation's own iteration is what wraps — the user can
+  // drag forever in either direction and never reach an end. Card count and
+  // layer width are completely unchanged.
+  //
+  // Two rules keep this from repeating the earlier Android bug (7fb77bd,
+  // "pointer capture was hijacking scroll"):
+  //   1. setPointerCapture is never called.
+  //   2. preventDefault is never called, and every listener is passive — so
+  //      the browser's own vertical page scrolling is untouched. A drag only
+  //      engages once horizontal intent is unambiguous (|dx| > 10 AND
+  //      |dx| > |dy|); a vertical swipe is simply never claimed.
+  function enableMarqueeDrag(row, track) {
+    let pointerDown = false;
+    let engaged = false;
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
+
+    const currentAnimation = () => track.getAnimations()[0] || null;
+
+    row.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      const anim = currentAnimation();
+      if (!anim) return;
+      pointerDown = true;
+      engaged = false;
+      startX = e.clientX;
+      startY = e.clientY;
+      startTime = Number(anim.currentTime) || 0;
+    }, { passive: true });
+
+    row.addEventListener('pointermove', (e) => {
+      if (!pointerDown) return;
+      const anim = currentAnimation();
+      if (!anim) return;
+
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+
+      if (!engaged) {
+        // Vertical (or still ambiguous) — do not claim this gesture. The page
+        // keeps scrolling exactly as the browser intends.
+        if (Math.abs(dx) <= 10 || Math.abs(dx) <= Math.abs(dy)) return;
+        engaged = true;
+        // Pause via a CLASS, not animation.pause(). Mixing WAAPI play/pause
+        // with the CSS animation-play-state that .marquee-idle also sets
+        // leaves the two fighting for ownership of the same animation;
+        // driving both from CSS keeps a single authority. Seeking
+        // currentTime works whether or not it is paused.
+        row.classList.add('marquee-dragging');
+      }
+
+      const duration = Number(anim.effect.getTiming().duration) || 0;
+      // One full iteration moves the track by exactly one copy.
+      const copyWidth = track.scrollWidth / 2;
+      if (!duration || !copyWidth) return;
+
+      // Dragging right (dx > 0) should pull earlier content into view, which
+      // means running the animation backwards.
+      let t = startTime - dx * (duration / copyWidth);
+      // Wrap into [0, duration) so dragging never hits an end in either
+      // direction — this is what keeps the manual scroll infinite too.
+      t = ((t % duration) + duration) % duration;
+      anim.currentTime = t;
+    }, { passive: true });
+
+    const endDrag = () => {
+      if (!pointerDown) return;
+      pointerDown = false;
+      // A drag ends with a click on whatever card was under the finger, which
+      // would navigate to that package the moment the user let go — every
+      // swipe would open a page. Swallow exactly one click, and only when a
+      // drag actually engaged, so ordinary taps still open the card. Capture
+      // phase, because the card handlers are delegated on document.
+      if (engaged) {
+        window.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }, { capture: true, once: true });
+      }
+      engaged = false;
+      // Motion resumes from wherever the user left it — no snap-back.
+      row.classList.remove('marquee-dragging');
+    };
+
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach((evt) => {
+      row.addEventListener(evt, endDrag, { passive: true });
+    });
+  }
+
   // Safe to call more than once — the Continents page renders lazily, so this
   // runs again after those rows exist. Already-registered rows are skipped.
   function initMarquees() {
@@ -1753,6 +1864,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // therefore the duration needed to keep this row at the shared speed.
       ensureMarqueeFill(row, track);
       tuneMarqueeSpeed(track);
+      enableMarqueeDrag(row, track);
       initMarquees.observer.observe(row);
     });
   }
