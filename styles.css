@@ -421,10 +421,29 @@ body {
 }
 
 .destinations-header {
-  background: rgba(240, 249, 255, 0.92);
-  /* Glacier white blue */
-  backdrop-filter: blur(18px) saturate(160%);
-  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  /* Glacier white blue. RC-16 FIX: was rgba(...,0.92) + backdrop-filter
+     blur(18px) saturate(160%). Now fully opaque with NO backdrop-filter.
+
+     This element is the direct sibling above the three animating rows, inside
+     the same absolutely-positioned, z-index:10 overlay stacking context (see
+     the mobile .destinations-container rule). A backdrop-filter has to
+     re-sample and re-blur its backdrop whenever anything beneath it in that
+     backdrop root changes — and beneath it sit three tracks animating
+     continuously at up to 120fps on ProMotion, over a crossfading hero.
+     That pins the compositor to a permanent full-rate re-snapshot of the
+     whole overlay, and iOS Safari sheds sibling layers under that pressure
+     rather than drop frames — which is precisely the "rows blank / rows take
+     turns" symptom.
+
+     This exact reasoning is already applied to .card in the mobile block
+     below, where backdrop-filter was removed for the same reason; the header
+     in the same stacking context was simply missed. The proven-working
+     .domestic-marquee-section has no backdrop-filter anywhere near it.
+
+     At 0.92 alpha the blur was barely visible, so going opaque is a
+     negligible visual change on every platform and removes the effect
+     entirely rather than leaving a cheaper version of the same hazard. */
+  background: #f0f9ff;
   border: 1px solid rgba(255, 255, 255, 0.9);
   border-radius: 24px;
   padding: 20px 24px;
@@ -533,6 +552,15 @@ body {
   padding: 4px 4px 12px 4px;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  /* RC-16 FIX: promote the clipping box to its own layer, exactly as the
+     proven-working .domestic-marquee-container on this same page does.
+     bf419ef removed this as "redundant" — it is not. On WebKit the clip box
+     is what the animating child composites against; without its own layer
+     the child's layer is re-created against a repainting parent, which is
+     when rows go blank. Kept identical to the control rather than reasoned
+     about from first principles. */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .cards-grid::-webkit-scrollbar {
@@ -565,8 +593,18 @@ body {
   flex-direction: row !important;
   gap: 12px !important;
   width: max-content !important;
+  min-width: max-content !important;
   flex-shrink: 0 !important;
   animation: safariMarqueeLeft 32s linear infinite;
+  /* RC-16 FIX: pin this track to one persistent GPU layer for the whole
+     animation. RC-15 declared the animation but none of the layer hints, so
+     these three tracks were the only animating marquees on the site without
+     them. The sibling .domestic-marquee-track — the one marquee on this page
+     never once reported broken on the reporter's iPhone — carries exactly
+     these three properties. Matching it is the whole point. */
+  will-change: transform;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .marquee-inner.marquee-reverse {
