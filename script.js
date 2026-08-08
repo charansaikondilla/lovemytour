@@ -1587,7 +1587,37 @@ document.addEventListener('DOMContentLoaded', () => {
   function initDraggableMarquees(wrapperSelector, trackSelector, { secondsPerLoop, isReverse, useVisibilityGating = true }) {
     const wrappers = document.querySelectorAll(wrapperSelector);
 
-    wrappers.forEach((wrapper) => {
+    // RC-7 DIAGNOSTIC: opt-in only (append ?safaridebug to the URL — never
+    // runs for normal visitors). This bug's history is six rounds of
+    // theories that each looked right and turned out wrong once tested for
+    // real, because there's no way to inspect an iPhone's actual state from
+    // here. This puts a live readout of each row's real state directly on
+    // the screen it's failing on: last tick time (did the loop actually
+    // stall, or is it still running but not painting?), measured height (a
+    // real CSS collapse vs a paint-only issue look identical to the eye but
+    // very different here), and any caught JS error. If it happens again,
+    // a screenshot of this HUD is worth more than another guess.
+    const debugOn = /(?:^|[?&])safaridebug(?:=|&|$)/.test(location.search);
+    if (debugOn) {
+      window.__marqueeDebugRows = window.__marqueeDebugRows || [];
+      if (!window.__marqueeDebugHudStarted) {
+        window.__marqueeDebugHudStarted = true;
+        const hud = document.createElement('div');
+        hud.id = 'marqueeDebugHud';
+        hud.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99999;background:rgba(0,0,0,0.88);color:#0f0;font:10px/1.4 monospace;padding:6px 8px;max-height:40vh;overflow:auto;white-space:pre;pointer-events:none;';
+        document.body.appendChild(hud);
+        setInterval(() => {
+          const now = performance.now();
+          hud.textContent = window.__marqueeDebugRows.map((d) => {
+            const sinceTick = ((now - d.lastTick) / 1000).toFixed(1);
+            const stalled = (now - d.lastTick) > 1000 ? ' *** STALLED ***' : '';
+            return `${d.label}: h=${d.height.toFixed(0)}px pos=${d.position} tick=${sinceTick}s ago${stalled}${d.lastError ? ' ERR=' + d.lastError : ''}`;
+          }).join('\n');
+        }, 500);
+      }
+    }
+
+    wrappers.forEach((wrapper, rowIndex) => {
       const track = wrapper.querySelector(trackSelector);
       if (!track) return;
 
@@ -1615,6 +1645,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // decorative row; Continents keeps the gating since it wasn't
       // reported to have this problem.
       let isVisible = true;
+
+      const diag = debugOn ? { label: `${wrapperSelector.replace(/^.*\s/, '')}[${rowIndex}]`, lastTick: performance.now(), height: 0, position: '0', lastError: null } : null;
+      if (diag) window.__marqueeDebugRows.push(diag);
 
       function remeasure() {
         loopWidth = track.scrollWidth / 2;
@@ -1679,6 +1712,11 @@ document.addEventListener('DOMContentLoaded', () => {
             wrapPosition();
             applyTransform();
           }
+          if (diag) {
+            diag.lastTick = now;
+            diag.height = wrapper.getBoundingClientRect().height;
+            diag.position = position.toFixed(0);
+          }
         } catch (err) {
           // Swallow and keep going — see RC-6 FIX above. A stuck/frozen row
           // is a much smaller problem than a permanently dead one, and this
@@ -1686,6 +1724,7 @@ document.addEventListener('DOMContentLoaded', () => {
           // device, so it's worth keeping visible in the console rather than
           // silently discarding it.
           if (window.console && console.warn) console.warn('marquee frame error (recovered):', err);
+          if (diag) diag.lastError = String(err && err.message || err);
         } finally {
           requestAnimationFrame(frame);
         }
