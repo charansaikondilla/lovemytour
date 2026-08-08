@@ -1881,7 +1881,16 @@ body {
     gap: 0 !important;
     overflow-x: auto !important;
     overflow-y: hidden !important;
-    -webkit-overflow-scrolling: touch !important;
+    /* RC-12 FIX: deliberately NOT setting -webkit-overflow-scrolling: touch
+       here. That property is a well-documented iOS Safari trap for exactly
+       this pattern: once it's set, iOS can hand this element's scroll
+       position to a separate native momentum-scrolling layer that stops
+       reliably applying JS-driven `scrollLeft` writes while no touch
+       gesture is active — which would silently stop the auto-scroll rAF
+       loop below from having any visible effect on iPhone specifically,
+       while still working fine on Android/desktop (neither honors that
+       property the same way). Manual drag-scrolling still works without
+       it; it only loses the extra momentum/deceleration flourish. */
     /* The page sets `scroll-behavior: smooth` on <body>, which is inherited
        by any scrollable descendant unless overridden — without this, every
        small per-frame scrollLeft increment below would get queued as its

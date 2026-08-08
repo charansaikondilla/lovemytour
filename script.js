@@ -1618,6 +1618,7 @@ document.addEventListener('DOMContentLoaded', () => {
       wrapper.scrollLeft = reverse ? loopWidth : 0;
 
       let dragging = false;
+      let dragStartedAt = 0;
       let resumeAt = 0; // performance.now() timestamp; auto-scroll stays off until this passes (grace period after a manual drag, so momentum scrolling isn't fought)
       let lastFrameTime = null;
 
@@ -1637,6 +1638,14 @@ document.addEventListener('DOMContentLoaded', () => {
           lastFrameTime = now;
 
           if (loopWidth <= 0) remeasure();
+
+          // Self-heal a stuck `dragging` flag: it's only ever cleared by
+          // pointerup/pointercancel/pointerleave, and if any one of those
+          // ever fails to fire for a given touch (the same "stuck flag"
+          // class of bug this codebase already hit once with isVisible),
+          // this row would otherwise stay paused forever after a single
+          // touch. 5s is far longer than any real drag takes.
+          if (dragging && now - dragStartedAt > 5000) dragging = false;
 
           // Also pause while any full-screen modal (e.g. the 5-second
           // auto-popup enquiry form) is open — no reason to keep scrolling
@@ -1673,7 +1682,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // to handle a touch — passive tells it up front these listeners will
       // never call preventDefault, so it can commit to native scrolling
       // immediately instead of checking with JS first.
-      wrapper.addEventListener('pointerdown', () => { dragging = true; }, { passive: true });
+      wrapper.addEventListener('pointerdown', () => { dragging = true; dragStartedAt = performance.now(); }, { passive: true });
       ['pointerup', 'pointercancel', 'pointerleave'].forEach((evt) => {
         wrapper.addEventListener(evt, () => {
           dragging = false;
