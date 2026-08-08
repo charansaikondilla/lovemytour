@@ -522,12 +522,13 @@ body {
   transform: none;
 }
 
-/* Horizontal Scroll Container for 8 Cards */
+/* Global Safari marquee viewport — RC-15: a plain clipping box. It is
+   deliberately NOT a scroll container any more (no overflow-x:auto, no
+   scroll-snap): motion is a compositor-driven CSS animation on the track
+   inside it, so there is no scroll position for anything to fight over. */
 .cards-grid {
   display: flex;
-  overflow-x: auto;
-  scroll-behavior: smooth;
-  scroll-snap-type: x mandatory;
+  overflow: hidden;
   gap: 16px;
   padding: 4px 4px 12px 4px;
   scrollbar-width: none;
@@ -538,33 +539,67 @@ body {
   display: none;
 }
 
-/* Universal Marquee Wrapper for Seamless Infinite Auto-Scroll.
-   Motion is driven entirely by JS (initDraggableMarquees in script.js) via
-   requestAnimationFrame — not a CSS @keyframes animation. iOS WebKit has a
-   documented history (RC-3/RC-4 elsewhere in this file) of silently pausing
-   or dropping long-running CSS animations, which is exactly what caused the
-   Global Safari rows to appear to "stop" scrolling after a while on iPhone.
-   A JS-driven position value that wraps via modulo arithmetic every frame
-   has no animation-iteration-count or animation-play-state for WebKit to
-   lose track of — it cannot "end." This also lets the same code path
-   support drag-to-scroll (mouse + touch) directly, instead of needing a
-   separate pause-on-touch mechanism bolted on top. */
+/* Global Safari marquee track — RC-15 FIX.
+   Motion is a pure CSS @keyframes transform animation, driven entirely by
+   the compositor. This replaces every JS-driven approach tried before it
+   (rAF writing `transform` in RC-1..RC-9, then rAF writing `scrollLeft` in
+   RC-10..RC-14), none of which held up on real iPhones.
+
+   Why this is the right mechanism rather than another workaround:
+     - A compositor-driven transform animation does NOT run JavaScript per
+       frame, does NOT read layout per frame, and does NOT touch the DOM per
+       frame. There is no main-thread work to be starved, deprioritised, or
+       skipped — which is what made rows freeze or "take turns" before.
+     - The track is painted once into a single composited layer and then
+       simply moved by the GPU. There is no scroll position, so nothing can
+       fight it (snap, momentum, rubber-banding, or the page's own scroll).
+     - It is the single most widely deployed marquee technique on the web,
+       so it is heavily exercised on iOS WebKit rather than being an unusual
+       pattern that hits rare compositor paths.
+
+   Translating by exactly -50% moves the track by precisely one full copy of
+   the card set (the markup contains the set twice), so the loop is seamless
+   and mathematically cannot drift or "run out" of content. */
 .marquee-inner {
   display: flex !important;
   flex-direction: row !important;
   gap: 12px !important;
   width: max-content !important;
-  will-change: transform !important;
   flex-shrink: 0 !important;
+  animation: safariMarqueeLeft 32s linear infinite;
 }
 
-.cards-grid {
-  cursor: grab;
+.marquee-inner.marquee-reverse {
+  animation-name: safariMarqueeRight;
 }
 
-.cards-grid:active {
-  cursor: grabbing;
+@keyframes safariMarqueeLeft {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
 }
+
+@keyframes safariMarqueeRight {
+  from {
+    transform: translate3d(-50%, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Deliberately NOT gated on prefers-reduced-motion, matching the sibling
+   .domestic-marquee-track in this file. Windows reports "reduce" whenever
+   Settings > Accessibility > Visual effects > Animation effects is off —
+   which is common, and not an actual request for a motionless page (see the
+   same note in script.js's hero slideshow). Gating here left all three rows
+   frozen on a plain desktop, which is precisely the "the rows aren't moving"
+   symptom being fixed. This is a slow, continuous, decorative drift. */
 
 
 .card {
@@ -1859,73 +1894,21 @@ body {
   }
 
   /* ── Safari Auto-Scroll Rows ─────────────────────────── */
-  /* RC-10 FIX: this whole bug's history (RC-1 through RC-9) was chasing
-     WebKit's handling of a custom, JS-driven `transform` on a continuously
-     animated compositing layer — every mitigation attempted (promote it,
-     un-promote it, pause it, force-repaint it, force-repaint it on a
-     timer) reduced but never eliminated real on-device reports. Rather
-     than keep patching that mechanism, this row is now driven by real
-     native horizontal scrolling (`overflow-x: auto` + JS incrementing
-     `scrollLeft`) instead of `transform`. Native scroll compositing is one
-     of WebKit's most mature, heavily-used code paths on iOS — it's core to
-     the platform working at all — which makes it far less likely to hit
-     the kind of rare compositor bug this custom transform-loop pattern
-     kept running into. It also gets real native touch-drag for free, with
-     no custom pointer-capture code needed (see initGlobalSafariMarquees in
-     script.js) — removing an entire earlier-diagnosed bug class
-     ("pointer capture was hijacking scroll") structurally rather than
-     mitigating it. */
+  /* RC-15 FIX: motion is now a compositor-driven CSS keyframe animation on
+     .marquee-inner (see its rule near the top of this file). This element is
+     therefore just a clipping viewport again — every scroll-container
+     property the RC-10..RC-14 native-scroll experiment needed here
+     (overflow-x:auto, scroll-behavior, scroll-snap-type, overscroll-behavior,
+     touch-action) is gone, because there is no scroll position on this
+     element any more for anything to conflict with. In particular
+     touch-action is no longer overridden at all, so vertical page scrolling
+     over these rows is plain default browser behaviour again — which is what
+     disturbed Android scrolling when it was set to pan-x. */
   .cards-grid {
     display: flex !important;
     flex-direction: row !important;
     gap: 0 !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    /* RC-12 FIX: deliberately NOT setting -webkit-overflow-scrolling: touch
-       here. That property is a well-documented iOS Safari trap for exactly
-       this pattern: once it's set, iOS can hand this element's scroll
-       position to a separate native momentum-scrolling layer that stops
-       reliably applying JS-driven `scrollLeft` writes while no touch
-       gesture is active — which would silently stop the auto-scroll rAF
-       loop below from having any visible effect on iPhone specifically,
-       while still working fine on Android/desktop (neither honors that
-       property the same way). Manual drag-scrolling still works without
-       it; it only loses the extra momentum/deceleration flourish. */
-    /* The page sets `scroll-behavior: smooth` on <body>, which is inherited
-       by any scrollable descendant unless overridden — without this, every
-       small per-frame scrollLeft increment below would get queued as its
-       own smooth-scroll animation instead of applying instantly, turning
-       the auto-scroll into a stutter instead of continuous motion. */
-    scroll-behavior: auto !important;
-    /* RC-13 FIX: the base (desktop) .cards-grid rule sets
-       scroll-snap-type: x mandatory, and .card sets scroll-snap-align:
-       start !important at every width — neither was ever turned off here.
-       With snap active, every card is a snap point, and the browser
-       continuously tries to pull the scroll position back to the nearest
-       one on every single auto-scroll write this row makes — a real
-       tug-of-war between the browser's snap logic and this row's own JS,
-       many times a second. That's what visible shaking/flickering was:
-       not a rendering bug, a genuine conflict between two systems both
-       trying to own the same scroll position. Snap and continuous
-       JS-driven auto-scroll are fundamentally incompatible; this row only
-       ever wants smooth continuous motion, so snapping is switched off
-       entirely here. */
-    scroll-snap-type: none !important;
-    /* Keeps a horizontal fling here from also triggering vertical page
-       bounce/rubber-banding or a browser back/forward swipe gesture. */
-    overscroll-behavior-x: contain !important;
-    /* RC-11 FIX: explicitly declares this element's own native touch
-       handling as horizontal-only. Without this, the browser has to use
-       heuristics (and often has to wait on the pointerdown/up JS listeners
-       below before it can be sure) to decide whether a touch starting on a
-       card belongs to this row's horizontal scroll or the page's vertical
-       scroll — that ambiguity/wait is exactly what made normal page
-       scrolling feel disturbed after switching this row to native
-       scrollLeft. Declaring pan-x tells the browser up front: this
-       element's own native scrolling is horizontal only, so any vertical
-       drag starting here should be handed to the page immediately, with no
-       JS round-trip needed to decide. */
-    touch-action: pan-x !important;
+    overflow: hidden !important;
     padding: 2px 0 !important;
     margin: 0 !important;
     width: 100% !important;
@@ -1934,7 +1917,6 @@ body {
        width:max-content flex child below. */
     height: 129px !important;
     position: relative !important;
-    scrollbar-width: none !important;
   }
 
   .cards-grid::-webkit-scrollbar {
@@ -1943,9 +1925,10 @@ body {
 
 
 
-  /* ── Marquee inner wrapper — holds both card sets; the scroll position
-       lives on .cards-grid now, not on a transform here (see RC-10 FIX
-       above), so this is a plain static layout box again. ── */
+  /* ── Marquee track — holds both card sets. The animation itself is
+       declared once in the base .marquee-inner rule near the top of this
+       file (RC-15) and applies at every width; only the mobile sizing is
+       overridden here. ── */
   .marquee-inner {
     display: flex !important;
     flex-direction: row !important;

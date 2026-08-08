@@ -177,17 +177,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // 1.2 (removed) Legacy scroll-driven canvas/cloud hero effects - the hero now uses a
   //     plain crossfade photo slideshow, so no scroll-linked background work is needed.
 
-  // 1.3 SAFARI CAROUSEL — RC-10 FIX: rebuilt on native scrollLeft instead of
-  //     a JS-driven `transform` (see initGlobalSafariMarquees below, and the
-  //     RC-10 comment on .cards-grid in styles.css, for the full reasoning
-  //     — nine rounds of patching WebKit's handling of a custom transform
-  //     layer weren't converging, so this removes that mechanism instead of
-  //     further mitigating it). Continents' rows are untouched: they still
-  //     use initDraggableMarquees below, unchanged.
-  initGlobalSafariMarquees('.destinations-container .cards-grid', '.marquee-inner', {
-    secondsPerLoop: 32,
-    isReverse: (track) => track.classList.contains('marquee-reverse')
-  });
+  // 1.3 SAFARI CAROUSEL — RC-15 FIX: there is deliberately no JavaScript here
+  //     any more. The three Global Safari rows are animated entirely by a CSS
+  //     @keyframes transform on .marquee-inner (see styles.css, "RC-15 FIX"),
+  //     which runs on the compositor: no per-frame JS, no per-frame layout
+  //     reads, no scroll position to conflict with. Every JS-driven version
+  //     of this (rAF writing `transform`, then rAF writing `scrollLeft`)
+  //     failed on real iPhones in a way that could not be reproduced or
+  //     debugged remotely, so the mechanism itself was removed rather than
+  //     patched again. The cards stay clickable via the delegated
+  //     `.view-package-trigger` handler further down this file.
 
   // 1.4 HERO COUNTRY SEARCH — type a country, jump straight to its package page.
   // Builds its index straight from packagesData.js so every category added
@@ -1437,14 +1436,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
       let cardsHTML = '';
       const destList = cData.destinations || [];
-      // Duplicate for seamless infinite auto-scroll loop
+      // Duplicate for seamless infinite auto-scroll loop.
+      // RC-16 FIX (North America): these images deliberately do NOT use
+      // loading="lazy". Inside a marquee the track is moved with a CSS/JS
+      // transform, and Safari's lazy-load intersection calculation does not
+      // reliably re-evaluate for content that arrives via a transform rather
+      // than via real scrolling — so a card could stay permanently unloaded
+      // and render blank. That shows up worst on the continents with the
+      // fewest destinations (North America has 3, Antarctica 2), where each
+      // unloaded card is a large fraction of the row.
       const fullList = [...destList, ...destList];
 
       fullList.forEach((dest, i) => {
         const isHidden = i >= destList.length;
         cardsHTML += `
           <a href="#category/${dest.id}" class="country-photo-card"${isHidden ? ' aria-hidden="true"' : ''}>
-            <img src="${dest.image}" alt="${dest.name}" class="country-photo-img" loading="lazy" decoding="async" />
+            <img src="${dest.image}" alt="${dest.name}" class="country-photo-img" decoding="async" />
             <div class="country-photo-gradient"></div>
             <span class="country-card-tag">${dest.tag}</span>
             <div class="country-photo-info">
@@ -1565,160 +1572,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================================================
-  // GLOBAL SAFARI MARQUEE — RC-10: native-scroll-driven (see the RC-10
-  // comment on .cards-grid in styles.css for the full reasoning). Auto-scroll
-  // is real `scrollLeft`, incremented every frame and wrapped with duplicated
-  // content for a seamless loop — never a `transform`, and never a custom
-  // pointer-capture drag implementation. Touch/mouse dragging is entirely
-  // native (the browser's own horizontal scroll handling); this code only
-  // pauses its own auto-increment while a pointer is down, and lets the
-  // browser do 100% of the actual dragging/momentum.
-  //
-  // This function is Global-Safari-only. Continents keeps using the
-  // transform-based initDraggableMarquees below, completely unchanged — it
-  // was never reported to have this bug, so it isn't touched.
-  function initGlobalSafariMarquees(wrapperSelector, trackSelector, { secondsPerLoop, isReverse }) {
-    const wrappers = document.querySelectorAll(wrapperSelector);
-
-    const debugOn = /(?:^|[?&])safaridebug(?:=|&|$)/.test(location.search);
-    if (debugOn) {
-      window.__marqueeDebugRows = window.__marqueeDebugRows || [];
-      if (!window.__marqueeDebugHudStarted) {
-        window.__marqueeDebugHudStarted = true;
-        const hud = document.createElement('div');
-        hud.id = 'marqueeDebugHud';
-        hud.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99999;background:rgba(0,0,0,0.88);color:#0f0;font:10px/1.4 monospace;padding:6px 8px;max-height:40vh;overflow:auto;white-space:pre;pointer-events:none;';
-        document.body.appendChild(hud);
-        setInterval(() => {
-          const now = performance.now();
-          hud.textContent = window.__marqueeDebugRows.map((d) => {
-            const sinceTick = ((now - d.lastTick) / 1000).toFixed(1);
-            const stalled = (now - d.lastTick) > 1000 ? ' *** STALLED ***' : '';
-            return `${d.label}: h=${d.height.toFixed(0)}px scrollLeft=${d.position} tick=${sinceTick}s ago${stalled}${d.lastError ? ' ERR=' + d.lastError : ''}`;
-          }).join('\n');
-        }, 500);
-      }
-    }
-
-    // RC-14 FIX: all rows now share ONE requestAnimationFrame chain instead
-    // of each row scheduling its own, independent rAF callback. Real
-    // on-device reports described rows visibly "taking turns" — one
-    // scrolling while another sat blank, then a different one losing its
-    // turn a moment later. That's the signature of the browser not
-    // servicing several independent, uncoordinated animation callbacks
-    // equally on a given frame, which three separate rAF chains are. A
-    // single shared loop that updates every row's scrollLeft within the
-    // same tick removes that possibility structurally: there's only ever
-    // one animation callback for this whole section, so there's nothing
-    // for the browser to unevenly prioritize between. Each row still gets
-    // its own try/catch inside the shared loop, so one row's error still
-    // can't affect the others.
-    const rows = [];
-
-    wrappers.forEach((wrapper, rowIndex) => {
-      const track = wrapper.querySelector(trackSelector);
-      if (!track) return;
-
-      const reverse = isReverse(track);
-      const row = {
-        wrapper,
-        track,
-        reverse,
-        loopWidth: track.scrollWidth / 2, // content is duplicated once for a seamless loop
-        dragging: false,
-        dragStartedAt: 0,
-        resumeAt: 0, // performance.now() timestamp; auto-scroll stays off until this passes (grace period after a manual drag, so momentum scrolling isn't fought)
-        diag: debugOn ? { label: `${wrapperSelector.replace(/^.*\s/, '')}[${rowIndex}]`, lastTick: performance.now(), height: 0, position: '0', lastError: null } : null
-      };
-      if (row.diag) window.__marqueeDebugRows.push(row.diag);
-
-      function remeasure() {
-        row.loopWidth = track.scrollWidth / 2;
-      }
-      window.addEventListener('resize', remeasure);
-
-      // Reverse rows start at the loop boundary so they have room to count
-      // down from the very first frame instead of underflowing to negative
-      // scrollLeft (which clamps to 0 in every browser, not wrapping).
-      wrapper.scrollLeft = reverse ? row.loopWidth : 0;
-
-      // No preventDefault, no setPointerCapture — the browser handles the
-      // entire drag/momentum natively. This just pauses the auto-increment
-      // below while a pointer is down, and gives native momentum scrolling
-      // a moment to settle before resuming. { passive: true } on top of the
-      // CSS touch-action: pan-x above (see its RC-11 comment) makes doubly
-      // sure the browser never has to wait on this JS before deciding how
-      // to handle a touch — passive tells it up front these listeners will
-      // never call preventDefault, so it can commit to native scrolling
-      // immediately instead of checking with JS first.
-      wrapper.addEventListener('pointerdown', () => { row.dragging = true; row.dragStartedAt = performance.now(); }, { passive: true });
-      ['pointerup', 'pointercancel', 'pointerleave'].forEach((evt) => {
-        wrapper.addEventListener(evt, () => {
-          row.dragging = false;
-          row.resumeAt = performance.now() + 600;
-        }, { passive: true });
-      });
-
-      rows.push(row);
-    });
-
-    if (!rows.length) return;
-
-    let lastFrameTime = null;
-
-    function masterFrame(now) {
-      try {
-        if (lastFrameTime === null) lastFrameTime = now;
-        const dt = Math.min((now - lastFrameTime) / 1000, 0.1);
-        lastFrameTime = now;
-
-        // Also pause while any full-screen modal (e.g. the 5-second
-        // auto-popup enquiry form) is open — no reason to keep scrolling
-        // content the visitor can't see. Reads the modal's own state;
-        // doesn't modify it. Checked once per tick, shared by every row.
-        const modalOpen = !!document.querySelector('.modal-overlay.active');
-
-        for (const row of rows) {
-          try {
-            // Self-heal a stuck `dragging` flag: it's only ever cleared by
-            // pointerup/pointercancel/pointerleave, and if any one of those
-            // ever fails to fire for a given touch (the same "stuck flag"
-            // class of bug this codebase already hit once with isVisible),
-            // this row would otherwise stay paused forever after a single
-            // touch. 5s is far longer than any real drag takes.
-            if (row.dragging && now - row.dragStartedAt > 5000) row.dragging = false;
-
-            if (row.loopWidth <= 0) row.loopWidth = row.track.scrollWidth / 2;
-
-            if (!row.dragging && !modalOpen && now >= row.resumeAt && row.loopWidth > 0) {
-              const pxPerSecond = row.loopWidth / secondsPerLoop;
-              row.wrapper.scrollLeft += (row.reverse ? -1 : 1) * pxPerSecond * dt;
-            }
-
-            // Wrap — applies regardless of who moved scrollLeft, auto-increment above or a manual drag in progress
-            if (row.loopWidth > 0) {
-              if (row.wrapper.scrollLeft >= row.loopWidth) row.wrapper.scrollLeft -= row.loopWidth;
-              else if (row.wrapper.scrollLeft <= 0) row.wrapper.scrollLeft += row.loopWidth;
-            }
-
-            if (row.diag) {
-              row.diag.lastTick = now;
-              row.diag.height = row.wrapper.getBoundingClientRect().height;
-              row.diag.position = row.wrapper.scrollLeft.toFixed(0);
-            }
-          } catch (err) {
-            if (window.console && console.warn) console.warn('marquee row error (recovered):', err);
-            if (row.diag) row.diag.lastError = String(err && err.message || err);
-          }
-        }
-      } finally {
-        requestAnimationFrame(masterFrame);
-      }
-    }
-    requestAnimationFrame(masterFrame);
-  }
-
-  // ==========================================================================
   // UNIFIED DRAGGABLE / AUTO-SCROLLING MARQUEE
   // Used by the Continents page rows (Global Safari now uses the
   // native-scroll-driven initGlobalSafariMarquees above instead — see its
@@ -1742,7 +1595,7 @@ document.addEventListener('DOMContentLoaded', () => {
   //                 doubled) card set should take — lower is faster.
   // isReverse(track): return true if this particular track should scroll
   //                    the opposite direction (e.g. every other row).
-  function initDraggableMarquees(wrapperSelector, trackSelector, { secondsPerLoop, isReverse, useVisibilityGating = true, periodicRepaintMs = 0 }) {
+  function initDraggableMarquees(wrapperSelector, trackSelector, { secondsPerLoop, isReverse, useVisibilityGating = true }) {
     const wrappers = document.querySelectorAll(wrapperSelector);
 
     // RC-7 DIAGNOSTIC: opt-in only (append ?safaridebug to the URL — never
@@ -1812,63 +1665,29 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       window.addEventListener('resize', remeasure);
 
-      // RC-8 FIX: visibility is now computed synchronously, every frame,
-      // straight from getBoundingClientRect() — not via IntersectionObserver.
-      // Real on-device screenshots (not just theory this time) show the
-      // actual failure: layout height stays correct, but the row's painted
-      // content goes blank, specifically tied to scroll gestures in both
-      // directions. That matches a documented WebKit behavior: content
-      // scrolled out of the viewport can have its paint backing store
-      // decommissioned to save memory, and if something keeps writing to
-      // that element's transform every frame while it's off-screen (which
-      // useVisibilityGating:false was doing for Global Safari, specifically
-      // to dodge a different risk — see below), WebKit can fail to
-      // reconstitute/repaint it once it scrolls back into view.
-      // IntersectionObserver was removed for Global Safari two rounds ago
-      // over a real risk (its callback silently not firing would leave
-      // isVisible stuck forever) — but computing it inline from the
-      // element's own rect every frame gets the pausing benefit with none of
-      // that risk: there's no callback to get stuck, it's just read fresh
-      // every tick.
-      function forceRepaint() {
-        // Force WebKit to tear down and rebuild this layer's compositing/
-        // paint backing store instead of assuming nothing changed — see the
-        // RC-8/RC-9 comments below for why this is needed at all.
-        track.style.willChange = 'auto';
-        void track.offsetWidth; // force a synchronous style flush
-        track.style.willChange = 'transform';
-      }
-
-      let wasVisible = true;
-      function updateVisibility() {
-        const rect = wrapper.getBoundingClientRect();
-        // Also pause while any full-screen modal (e.g. the 5-second
-        // auto-popup enquiry form) is open. It's a fixed, full-viewport
-        // `backdrop-filter: blur()` — while it's showing, WebKit has to
-        // continuously re-blur the whole page behind it, and nothing was
-        // stopping these rows from continuing to update their transform
-        // underneath it at the same time, for content the visitor can't
-        // even see. Reads the modal's own state; doesn't modify it.
-        const modalOpen = !!document.querySelector('.modal-overlay.active');
-        isVisible = !modalOpen && rect.bottom > 0 && rect.top < (window.innerHeight || document.documentElement.clientHeight);
-        // Regaining visibility after being paused off-screen: resuming the
-        // same `transform` value it already had can look like a no-op to the
-        // browser and never trigger a repaint of a decommissioned layer.
-        if (isVisible && !wasVisible) forceRepaint();
-        wasVisible = isVisible;
-      }
-
-      // RC-9 FIX: the RC-8 pause+repaint-on-return approach (updateVisibility
-      // above) was tested for real on-device after deploying and the rows
-      // still went blank. Rather than chase a ninth single-cause theory for
-      // a closed-source rendering engine's internal paint/tile management
-      // that can't be inspected or reproduced from here, this forces the
-      // same repaint unconditionally on a timer — independent of visibility,
-      // independent of whatever WebKit's actual internal trigger turns out
-      // to be. Whatever silently drops this layer's painted content, it can
-      // now never stay blank longer than periodicRepaintMs.
-      if (periodicRepaintMs > 0) {
-        setInterval(forceRepaint, periodicRepaintMs);
+      // RC-16 FIX (Continents regression revert): visibility gating is back
+      // to an IntersectionObserver, exactly as it was before RC-8.
+      //
+      // RC-8 had replaced this with a getBoundingClientRect() call made
+      // inside the animation frame, for EVERY row, on EVERY frame. That was
+      // introduced to chase the Global Safari bug, but this function is
+      // shared — so it silently applied to the Continents page too, despite
+      // a comment at its call site claiming Continents was untouched. On
+      // Continents that meant 7 continent rows each forcing a synchronous
+      // layout read 60x/second, interleaved with transform writes: textbook
+      // layout thrashing, and the likely cause of the North America row
+      // misbehaving on iPhone. An IntersectionObserver does the same job
+      // asynchronously, off the critical path, with zero forced layout.
+      //
+      // Global Safari no longer uses this function at all (it is pure CSS
+      // animation now — see RC-15), so this file is back to having exactly
+      // one consumer: the Continents page.
+      if (useVisibilityGating) {
+        const visibilityObserver = new IntersectionObserver(
+          (entries) => { isVisible = entries[0].isIntersecting; },
+          { threshold: 0 }
+        );
+        visibilityObserver.observe(wrapper);
       }
 
       function wrapPosition() {
@@ -1912,8 +1731,6 @@ document.addEventListener('DOMContentLoaded', () => {
           // being away for a while."
           const dt = Math.min((now - lastFrameTime) / 1000, 0.1);
           lastFrameTime = now;
-
-          if (useVisibilityGating) updateVisibility();
 
           if (loopWidth <= 0) remeasure(); // self-heal a bad/zero measurement instead of staying stuck at it
 
