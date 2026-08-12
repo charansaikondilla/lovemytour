@@ -50,6 +50,112 @@ DevTools automation, both `/` and `/#continents` routes):
 the remaining ~30 non-marquee Continents images) and Phase 3 (SPA memory
 accumulation) are unstarted — see §8.
 
+## RC-21 (2026-08-13) — the actual leak, plus a testing-methodology gap in every prior RC including RC-20
+
+The user came back with real device screenshots (`iphone error/*.jpeg`, real
+iPhone Safari, mid phone call, low battery) showing the exact same class of
+bug RC-1 through RC-20 were supposed to have fixed: Global Safari rows going
+blank (inconsistently — sometimes row 2 alone, sometimes rows 2+3, sometimes
+all 3), and Continents rows blank on Africa/Australia/North America. This
+prompted going back to first principles instead of another point fix.
+
+### Finding #1: every RC, including RC-20, verified the wrong artifact
+
+This site is a Vite project (`npm run build` → `dist/`, deployed to GitHub
+Pages by `.github/workflows/deploy.yml`). Every verification pass done in
+this document — RC-20 included — tested the *raw, unbuilt source* via
+`python -m http.server`, never the actual bundled/hashed production output.
+Building for real surfaced a structural detail that matters: Vite hashes and
+flattens any image it can statically see (`<img src="...">` literally in
+`index.html`, or CSS `url()`), producing `dist/assets/kenya-BldIFdys.jpg`. It
+cannot see paths built at runtime (`cardThumb()`, `dest.image`, `pkg.image`)
+— those only resolve because `sync-public-assets.js` mirrors the whole
+`assets/` tree into `public/assets/`, which Vite copies verbatim. Both
+mechanisms turned out to work correctly together, so this wasn't itself a
+bug — but it means 20 RCs of "verified working" were never actually checking
+the thing iPhones load. This RC's verification (below) runs against a real
+`npm run build` output for the first time.
+
+### Finding #2: the actual leak — the observer only ever released the GPU layer, never the decoded bitmap
+
+`initMarquees()`'s `IntersectionObserver` has toggled `.marquee-idle` since
+RC-17, which drops `will-change: transform` for offscreen rows. It has never
+touched the `<img>` elements themselves. A decoded bitmap stays cached by the
+browser for as long as the element keeps that `src`, regardless of
+`will-change`. On the Continents page — 7 rows, up to 18 images each — that
+means every row the user scrolls past keeps its full image set resident for
+the rest of the session. Memory grows monotonically with scroll distance;
+whichever rows are still resident when iOS's ceiling is crossed get their
+backing stores evicted, more or less arbitrarily. That is why the failing
+continent was never the same one twice across 20 RCs' worth of reports — it
+was never about a specific row, it was about how much had already
+accumulated by the time the user scrolled to it. Africa/Australia/North
+America failing in the user's latest report is consistent with this: whatever
+had already been scrolled past by that point.
+
+**Fix:** the same observer callback now also strips (`removeAttribute('src')`,
+saved to `data-parked-src`) each image in a row the moment it's confirmed
+offscreen, and restores it the moment the row re-enters the existing 250px
+lead zone — before it's visible. Verified live (real `dist/` build,
+scripted scroll): scrolling to the bottom left only the currently-visible row
+holding real `src` values; every row scrolled past showed `idle=true,
+withSrc=0, parked=<n>`; scrolling back to the top restored every image with
+zero broken `<img>` elements. Scoped to `.continent-marquee-track` only —
+deliberately excludes Global Safari, see the code comment in `script.js` for
+why (the SPA's route switch reads "hidden" the same way "scrolled away"
+reads, which risks a blank-flash race on Home that this row-by-row-scroll
+scenario on Continents doesn't have).
+
+### Finding #3: Global Safari's blank-on-load is a different failure — a startup decode burst, not accumulation
+
+Global Safari is only 3 rows, always clustered at the top of the home page —
+there's nothing to accumulate past, and the "no rows" screenshot shows all 3
+blank on what looks like a fresh load. All ~15 unique card images across all
+3 rows shipped `eager` (no `loading="lazy"`, by design — WebKit's native lazy
+IntersectionObserver doesn't reliably re-fire for `transform`-moved content,
+per RC-19). That means the browser fires off every decode for all 3 rows
+simultaneously, at the exact moment it's also parsing fonts, running init JS,
+and painting the hero — the single highest-contention window on the whole
+page load. Reports never agreeing on which of the 3 rows failed (row 2 alone,
+2+3, or all 3) is the signature of a decode queue running out of budget
+partway through an oversized batch, not one row having a distinct bug.
+
+**Fix:** rows 2 and 3 in `index.html` now ship `data-src` instead of `src`
+(row 1 is untouched — it's the one row guaranteed near the top of the
+viewport, so it must not depend on a JS callback for first paint, same rule
+as `.marquee-idle`). The same `IntersectionObserver`/250px lead zone hydrates
+`data-src` → `src` the first time each row is confirmed nearby, spreading the
+~15-image decode burst across the scroll instead of forcing it all at once on
+load. One-way, unlike the Continents fix — nothing is re-stripped once
+loaded. Verified live: on load only row 1's 6 unique images are in the
+network log; scrolling down hydrates rows 2 and 3 with zero broken images.
+
+### Finding #4: an environmental factor visible in every screenshot, not a code bug
+
+All 4 screenshots in `iphone error/` show a live phone call in progress
+(status bar call timer) and a low battery icon. iOS auto-enables Low Power
+Mode under ~20% charge, which throttles CPU and can defer network/background
+work; an active call adds its own audio-processing load and can share
+cellular bandwidth with the page. None of this is something the code can
+detect or fix, but it is a real, compounding source of exactly the symptom
+being chased (less memory/CPU headroom than an idle, charged phone would
+have) — worth ruling out by testing once off a call with a charged battery,
+since a real fix on a maximally-constrained device may still look identical
+to a real fix that only needed normal headroom.
+
+### What's still true after RC-21
+
+- No real iPhone has run this exact build — verification above is a real
+  `npm run build` output tested via scripted Chrome automation, not an
+  iPhone. The gap this RC closes is "testing the right artifact," not "having
+  a real device."
+- §7.1's 69 MB peak figure is now a *ceiling*, not a *constant* — Continents
+  no longer holds all 7 rows' images at once, so realistic resident memory
+  while scrolling is substantially lower, but that hasn't been re-measured
+  end-to-end on a real build.
+- Phase 2.1 (thumbnail the ~30 non-marquee Continents images) is still
+  unstarted.
+
 ---
 
 ## Table of Contents

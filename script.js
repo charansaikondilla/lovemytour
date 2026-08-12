@@ -1858,6 +1858,81 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // RC-21 FIX — the actual leak behind a continent going blank partway
+  // through a scroll session, and why it was never the same continent twice.
+  //
+  // The observer below has always toggled .marquee-idle, which releases the
+  // GPU compositing layer (will-change) for an offscreen row. It has never
+  // released the DECODED BITMAP behind each <img> — that stays cached by the
+  // browser for as long as the element keeps that `src`, regardless of
+  // whether the row is on screen. On the Continents page that means every
+  // row the user scrolls past keeps its full image set resident for the rest
+  // of the session: reach the 6th or 7th row and you are carrying the
+  // decoded weight of every row before it, on top of that row's own. Memory
+  // grows monotonically with scroll distance until iOS's ceiling is crossed,
+  // at which point it silently evicts backing stores from whichever rows it
+  // picks. That is why the failing continent was never consistent between
+  // reports — it was never really about that specific row, it was about how
+  // much had already piled up by the time the user scrolled to it.
+  //
+  // Scoped to Continents rows only (.continent-marquee-track), not Global
+  // Safari (.marquee-inner). Global Safari is 3 rows clustered at the top of
+  // the home page — nothing to accumulate past. It also sits behind the
+  // SPA's route switch: navigating to Continents sets the whole home page to
+  // display:none, which this same observer reads as "not intersecting" too.
+  // Parking on that signal would strip Global Safari's images on every visit
+  // to Continents, racing the observer's callback against the route's next
+  // paint to restore them before the user scrolls back — a real risk of a
+  // blank flash on return, which the original design explicitly ruled out
+  // (see the .marquee-idle comment below: never hide by default). Continents
+  // rows only ever go "not intersecting" by genuinely scrolling past them, so
+  // that race does not apply there.
+  //
+  // Layout is unaffected: .country-photo-img is sized via CSS
+  // (width/height: 100% of a fixed-size .country-photo-card, not the image's
+  // own intrinsic size), so removing `src` cannot collapse the row.
+  function setRowImagesParked(track, parked) {
+    track.querySelectorAll('img').forEach((img) => {
+      if (parked) {
+        if (img.src) {
+          img.dataset.parkedSrc = img.src;
+          img.removeAttribute('src');
+        }
+      } else if (img.dataset.parkedSrc) {
+        img.src = img.dataset.parkedSrc;
+        delete img.dataset.parkedSrc;
+      }
+    });
+  }
+
+  // RC-21 FIX #2 — Global Safari rows 2 and 3 (index.html) ship their
+  // <img> tags with `data-src` instead of `src`. Every image in all 3 rows
+  // used to load `eager` the instant the HTML was parsed — 15+ unique photos
+  // decoding all at once, at the exact moment the tab is also parsing fonts,
+  // running init JS, and painting the hero. That simultaneous burst is a
+  // plausible cause of "blank from the very first paint" independent of any
+  // scrolling: the reports never agreed on which of the 3 rows failed (row 2
+  // alone, rows 2+3, or all 3 at once, see iphone.md) — a signature of a
+  // decode queue running out of budget partway through an oversized initial
+  // batch, not one specific row being broken.
+  //
+  // Row 1 keeps eager `src` untouched: it is the one row guaranteed to be at
+  // or near the top of the viewport on load, so it must not depend on a JS
+  // observer callback for first paint (same "never depend on JS for the
+  // default state" rule as .marquee-idle). Rows 2 and 3 hydrate — src set
+  // from data-src, real network request fires — only once the observer
+  // reports them within the same 250px lead-in already used elsewhere, which
+  // spreads the 15-image decode burst out over the scroll instead of forcing
+  // it all at once on page load. One-way and permanent: unlike Continents,
+  // Global Safari is only 3 rows clustered together, so there is nothing to
+  // reclaim by re-stripping a row that scrolls back out of view.
+  function hydrateRowImages(track) {
+    track.querySelectorAll('img[data-src]').forEach((img) => {
+      img.src = img.dataset.src;
+      img.removeAttribute('data-src');
+    });
+  }
+
   // Safe to call more than once — the Continents page renders lazily, so this
   // runs again after those rows exist. Already-registered rows are skipped.
   function initMarquees() {
@@ -1869,17 +1944,27 @@ document.addEventListener('DOMContentLoaded', () => {
       initMarquees.observer = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
           const track = marqueeTrackIn(entry.target);
+          if (!track) return;
+          const idle = !entry.isIntersecting;
           // Note the polarity: we ADD .marquee-idle to park an offscreen row,
           // and rows animate by default in CSS. Never the reverse — see the
           // .marquee-idle comment in styles.css. If this callback never fires
           // (or stops firing) the rows keep animating, which is the safe
           // outcome; gating "is it running?" on this observer is what would
           // turn an observer hiccup into a permanently frozen row.
-          if (track) track.classList.toggle('marquee-idle', !entry.isIntersecting);
+          track.classList.toggle('marquee-idle', idle);
+          // RC-21: also release/restore decoded image memory — see above.
+          if (track.classList.contains('continent-marquee-track')) {
+            setRowImagesParked(track, idle);
+          } else if (!idle) {
+            // Global Safari: one-way cold-start hydration only — see above.
+            hydrateRowImages(track);
+          }
         });
       }, {
-        // Un-park a row well BEFORE it scrolls into view, so its layer is
-        // never re-created in the same frame that first paints it.
+        // Un-park a row well BEFORE it scrolls into view, so its layer (and,
+        // as of RC-21, its images) is never re-created in the same frame
+        // that first paints it.
         rootMargin: '250px 0px',
         threshold: 0
       });
