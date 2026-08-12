@@ -42,8 +42,31 @@ def continent_card_images():
     return [p for p in found if not p.startswith("http")]
 
 
+def cinematic_showcase_images():
+    """Every non-remote `image:` path inside cinematicDestinations in script.js.
+
+    This array backs the 7-continent showcase carousel on the Continents page
+    hero. It lives in script.js, not packagesData.js, so continent_card_images()
+    above never sees it — its cards render through the same cardThumb() lookup
+    as every other continent card, so it needs the same derivatives or that
+    lookup 404s.
+    """
+    import re
+    src = open("script.js", encoding="utf-8").read()
+    start = src.find("cinematicDestinations")
+    if start == -1:
+        sys.exit("could not find cinematicDestinations in script.js")
+    end = src.find("];", start)
+    found = re.findall(r"""image:\s*["']([^"']+)["']""", src[start:end])
+    return [p for p in found if not p.startswith("http")]
+
+
 def main():
-    paths = continent_card_images() + sorted(glob.glob("assets/safari-cards/*.jpg"))
+    paths = (
+        continent_card_images()
+        + cinematic_showcase_images()
+        + sorted(glob.glob("assets/safari-cards/*.jpg"))
+    )
     paths = sorted({p.replace(os.sep, "/") for p in paths})
 
     # Mirror each source's path under the thumb root rather than flattening to

@@ -1289,7 +1289,7 @@ document.addEventListener('DOMContentLoaded', () => {
           card.setAttribute('data-id', dest.id);
 
           card.innerHTML = `
-            <div class="continent-card-inner" style="background-image: url('${dest.image}');">
+            <div class="continent-card-inner" style="background-image: url('${cardThumb(dest.image)}');">
               <div class="continent-card-gradient"></div>
               <div class="continent-card-info">
                 <div class="continent-card-header-row">
@@ -1542,7 +1542,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       resultsBox.innerHTML = matches.map((d) => `
         <a href="#category/${d.id}" class="continents-search-result">
-          <img src="${d.image}" alt="" class="continents-search-result-img" loading="lazy" />
+          <img src="${cardThumb(d.image)}" alt="" class="continents-search-result-img" loading="lazy" />
           <span class="continents-search-result-text">
             <span class="continents-search-result-name">${d.name}</span>
             <span class="continents-search-result-meta">${d.continentName} &middot; ${d.tag}</span>

@@ -11,10 +11,15 @@
   <link rel="apple-touch-icon" href="assets/pngs/lovemytour-logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
   <link
     href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Cormorant+Garamond:ital,wght@1,400;1,500;1,600;1,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
     rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20260808a" />
+  <!-- LCP image: the active hero slide's background-image, inlined in the HTML below.
+       Preloading with fetchpriority="high" stops it competing with the marquee card
+       images and web fonts for early bandwidth on a phone. -->
+  <link rel="preload" as="image" href="assets/packages-images/heritage-europe-paris.jpg" fetchpriority="high" />
+  <link rel="stylesheet" href="styles.css?v=20260813a" />
 </head>
 
 <body>
@@ -354,7 +359,7 @@
                       <div class="card-info"><div class="location-details"><h3 class="country">Zimbabwe</h3><p class="spot">Mana Pools &amp; Falls</p></div></div>
                     </article>
                     <article class="card card-wide view-package-trigger" data-package-id="africa-zambia-safari">
-                      <img src="https://images.unsplash.com/photo-1666732566977-8805c13a6ce2?auto=format&amp;fit=crop&amp;w=660&amp;q=80" alt="Zambia Falls" class="card-bg" width="660" height="440" decoding="async" /><div class="card-gradient"></div>
+                      <img src="assets/card-thumbs/safari-cards/zambia.jpg" alt="Zambia Falls" class="card-bg" width="660" height="440" decoding="async" /><div class="card-gradient"></div>
                       <span class="wildlife-tag">6 DAYS</span>
                       <div class="card-info"><div class="location-details"><h3 class="country">Zambia</h3><p class="spot">Luangwa &amp; Falls</p></div></div>
                     </article>
@@ -385,7 +390,7 @@
                       <div class="card-info"><div class="location-details"><h3 class="country">Zimbabwe</h3><p class="spot">Mana Pools &amp; Falls</p></div></div>
                     </article>
                     <article class="card card-wide view-package-trigger" data-package-id="africa-zambia-safari" aria-hidden="true">
-                      <img src="https://images.unsplash.com/photo-1666732566977-8805c13a6ce2?auto=format&amp;fit=crop&amp;w=660&amp;q=80" alt="" class="card-bg" width="660" height="440" decoding="async" /><div class="card-gradient"></div>
+                      <img src="assets/card-thumbs/safari-cards/zambia.jpg" alt="" class="card-bg" width="660" height="440" decoding="async" /><div class="card-gradient"></div>
                       <span class="wildlife-tag">6 DAYS</span>
                       <div class="card-info"><div class="location-details"><h3 class="country">Zambia</h3><p class="spot">Luangwa &amp; Falls</p></div></div>
                     </article>
@@ -429,7 +434,7 @@
                       <div class="card-info"><div class="location-details"><h3 class="country">Norway</h3><p class="spot">Svalbard Arctic</p></div></div>
                     </article>
                     <article class="card card-wide view-package-trigger" data-package-id="centralamerica-costarica-safari">
-                      <img src="https://images.unsplash.com/photo-1623385521692-4a591e66619e?auto=format&amp;fit=crop&amp;w=660&amp;q=80" alt="Costa Rica Rainforest" class="card-bg" width="660" height="440" decoding="async" /><div class="card-gradient"></div>
+                      <img src="assets/card-thumbs/safari-cards/costa-rica.jpg" alt="Costa Rica Rainforest" class="card-bg" width="660" height="440" decoding="async" /><div class="card-gradient"></div>
                       <span class="wildlife-tag">5 DAYS</span>
                       <div class="card-info"><div class="location-details"><h3 class="country">Costa Rica</h3><p class="spot">Corcovado Jungle</p></div></div>
                     </article>
@@ -460,7 +465,7 @@
                       <div class="card-info"><div class="location-details"><h3 class="country">Norway</h3><p class="spot">Svalbard Arctic</p></div></div>
                     </article>
                     <article class="card card-wide view-package-trigger" data-package-id="centralamerica-costarica-safari" aria-hidden="true">
-                      <img src="https://images.unsplash.com/photo-1623385521692-4a591e66619e?auto=format&amp;fit=crop&amp;w=660&amp;q=80" alt="" class="card-bg" width="660" height="440" decoding="async" /><div class="card-gradient"></div>
+                      <img src="assets/card-thumbs/safari-cards/costa-rica.jpg" alt="" class="card-bg" width="660" height="440" decoding="async" /><div class="card-gradient"></div>
                       <span class="wildlife-tag">5 DAYS</span>
                       <div class="card-info"><div class="location-details"><h3 class="country">Costa Rica</h3><p class="spot">Corcovado Jungle</p></div></div>
                     </article>
@@ -1858,7 +1863,7 @@
     </div>
   </div>
 
-  <script type="module" src="script.js?v=20260808a"></script>
+  <script type="module" src="script.js?v=20260813a"></script>
 
   <!-- closes .app-container, opened at the top of the page -->
   </div>
