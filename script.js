@@ -1,6 +1,81 @@
 import { destinationsData, continentsData, getPackageById } from './packagesData.js';
 
 /* ============================================================================
+   DEBUG PANEL — RC-21 DIAGNOSTICS
+   Real-time marquee status, image loading, memory tracking visible on-page.
+   Toggle with button in top-left corner.
+   ========================================================================== */
+function initDebugPanel() {
+  const panel = document.createElement('div');
+  panel.id = 'debug-panel';
+  panel.style.cssText = `
+    position: fixed; top: 60px; left: 10px; z-index: 99999;
+    width: 360px; max-height: 80vh; overflow-y: auto;
+    background: rgba(0,0,0,0.9); color: #0f0; font-family: monospace;
+    font-size: 11px; padding: 10px; border: 2px solid #0f0;
+    border-radius: 4px; display: none; line-height: 1.4;
+  `;
+
+  const toggle = document.createElement('button');
+  toggle.textContent = '🔍 DEBUG';
+  toggle.style.cssText = `
+    position: fixed; top: 10px; left: 10px; z-index: 99999;
+    background: #0f0; color: #000; border: none; padding: 8px 12px;
+    border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;
+  `;
+  toggle.onclick = () => {
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  };
+
+  function updatePanel() {
+    const rows = [...document.querySelectorAll('.cards-grid, .continent-marquee-wrapper')];
+    let html = `<div style="color:#0f0; font-weight:bold; margin-bottom:8px;">MARQUEE STATUS</div>`;
+
+    rows.forEach((row, i) => {
+      const track = row.querySelector('.marquee-inner, .marquee-track, .continent-marquee-track');
+      if (!track) return;
+      const imgs = [...track.querySelectorAll('img')];
+      // A parked row (RC-21: memory released while offscreen) or a Global
+      // Safari row still waiting on its data-src hydration both legitimately
+      // have naturalWidth===0 without being broken — only count an image as
+      // broken if it has a live `src` that actually failed to decode.
+      const loaded = imgs.filter(im => im.complete && im.naturalWidth > 0).length;
+      const pending = imgs.filter(im => im.dataset.parkedSrc || im.hasAttribute('data-src')).length;
+      const broken = imgs.filter(im => im.getAttribute('src') && im.complete && im.naturalWidth === 0).length;
+      const idle = track.classList.contains('marquee-idle');
+
+      const status = broken > 0 ? '❌' : (loaded + pending === imgs.length) ? '✅' : '⏳';
+      html += `<div style="margin:4px 0; color:${broken > 0 ? '#f00' : '#0f0'};">
+        Row ${i}: ${status} idle=${idle ? 'Y' : 'N'} imgs=${loaded}/${imgs.length} pending=${pending} broken=${broken}
+      </div>`;
+    });
+
+    const allImgs = [...document.querySelectorAll('img')];
+    const totalBroken = allImgs.filter(i => i.getAttribute('src') && i.complete && i.naturalWidth === 0).length;
+    const totalLoaded = allImgs.filter(i => i.complete && i.naturalWidth > 0).length;
+
+    html += `<div style="margin-top:8px; border-top: 1px solid #0f0; padding-top:8px;">
+      <div style="color:#0f0; font-weight:bold;">TOTAL</div>
+      <div>Images: ${totalLoaded}/${allImgs.length}</div>
+      <div style="color:${totalBroken > 0 ? '#f00' : '#0f0'};">Broken: ${totalBroken}</div>
+      <div>Page: ${window.location.hash || '#home'}</div>
+    </div>`;
+
+    panel.innerHTML = html;
+  }
+
+  document.body.appendChild(toggle);
+  document.body.appendChild(panel);
+
+  setInterval(updatePanel, 500);
+  updatePanel();
+
+  console.log('✅ DEBUG PANEL READY — Click 🔍 DEBUG button to toggle');
+}
+
+document.addEventListener('DOMContentLoaded', initDebugPanel);
+
+/* ============================================================================
    WHATSAPP ENQUIRY DELIVERY
    Every website form (hero "Get Quote Now", the "Book Now" enquiry modal and
    the contact-page form) hands its filled-in data straight to WhatsApp as one
