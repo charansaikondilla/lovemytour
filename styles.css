@@ -544,8 +544,22 @@ body {
 /* Global Safari marquee viewport — RC-15: a plain clipping box. It is
    deliberately NOT a scroll container any more (no overflow-x:auto, no
    scroll-snap): motion is a compositor-driven CSS animation on the track
-   inside it, so there is no scroll position for anything to fight over. */
+   inside it, so there is no scroll position for anything to fight over.
+
+   RC-25 FIX: touch-action was entirely unset here (see the mobile-breakpoint
+   copy of this rule for why — pan-x was tried and reverted for breaking
+   Android's page scroll). Unset means the browser's native gesture
+   recognizer has no hint at all about this element, so on iOS it can decide
+   an ambiguous (part-vertical) touch is a page-scroll gesture and start
+   natively scrolling the page WHILE enableMarqueeDrag's pointermove handler
+   is also seeking the animation's currentTime — two systems moving things
+   at once, which is what "can't scroll properly" was. pan-y is the correct
+   value for this shape (JS owns horizontal, native keeps vertical): it
+   explicitly tells the browser vertical panning stays native — the opposite
+   effect of pan-x, which reserves horizontal for native and was what broke
+   Android. */
 .cards-grid {
+  touch-action: pan-y;
   display: flex;
   overflow: hidden;
   gap: 16px;
@@ -2017,13 +2031,25 @@ body {
      .marquee-inner (see its rule near the top of this file). This element is
      therefore just a clipping viewport again — every scroll-container
      property the RC-10..RC-14 native-scroll experiment needed here
-     (overflow-x:auto, scroll-behavior, scroll-snap-type, overscroll-behavior,
-     touch-action) is gone, because there is no scroll position on this
-     element any more for anything to conflict with. In particular
-     touch-action is no longer overridden at all, so vertical page scrolling
-     over these rows is plain default browser behaviour again — which is what
-     disturbed Android scrolling when it was set to pan-x. */
+     (overflow-x:auto, scroll-behavior, scroll-snap-type, overscroll-behavior)
+     is gone, because there is no scroll position on this element any more
+     for anything to conflict with.
+
+     RC-25 FIX: touch-action was left fully unset after that removal — "no
+     override" is not the same as "correctly hinted." pan-x (tried earlier,
+     reverted) restricts this element to native HORIZONTAL panning only,
+     which blocks native vertical page scroll starting on it — that is what
+     disturbed Android. Leaving touch-action unset instead removed that
+     regression but left iOS with no hint at all, so its native gesture
+     recognizer can still independently decide an ambiguous touch is a page
+     scroll and start moving the page natively at the same time
+     enableMarqueeDrag (script.js) is seeking the animation's currentTime —
+     two systems driving motion at once, reported as "can't scroll
+     properly." pan-y is the value this actually needed: it explicitly keeps
+     vertical panning native (so the page scrolls exactly as it always did)
+     while reserving everything else — the horizontal drag — for JS. */
   .cards-grid {
+    touch-action: pan-y !important;
     display: flex !important;
     flex-direction: row !important;
     gap: 0 !important;

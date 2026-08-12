@@ -298,6 +298,108 @@ ever moves — if it does, RC-24 caught something and recovered it; if a row
 is still stuck with the counter at 0, this theory is wrong and the search
 continues elsewhere.
 
+## RC-25 (2026-08-13) — two real bugs found by re-reading the architecture's own history, not another patch
+
+User reported the same class of failure again (middle row blank, appearing
+late, occasional inability to scroll the row smoothly) and explicitly asked
+for the marquee to be rebuilt with different CSS/JS rather than patched
+again. Before writing any new code, read back through every prior RC's
+comments in script.js/styles.css in full rather than just the most recent
+ones — and that changed the plan.
+
+**What that history rules out:** the obvious "better" rewrite — an
+`overflow-x: auto` native scroll container with a `requestAnimationFrame`
+loop nudging `scrollLeft` for the auto-drift — is not a new idea here. It is
+exactly what RC-10 through RC-14 already tried (both an earlier rAF-driven
+`transform` version, RC-1..RC-9, and then the rAF/scrollLeft version) and
+both were explicitly abandoned as "none of which held up on real iPhones."
+RC-15 replaced both with the current compositor-only CSS `@keyframes`
+animation specifically because a compositor animation runs no JavaScript,
+reads no layout, and touches no DOM per frame — there is no main-thread
+work to be starved or deprioritized, which is what caused rows to freeze or
+"take turns" going blank under the rAF-driven approaches. Rebuilding the
+rAF/scrollLeft version again would walk back into the same wall. The
+current architecture is not naive first-pass code; nearly every rule in the
+Global Safari CSS traces to a specific, named, previously-observed failure
+(RC-4's `isolation: isolate` for a z-index reset bug, RC-16's layer
+promotion on the clipping box specifically, RC-17's `gap: 0` for exact -50%
+loop math, RC-18's animation-currentTime-seeking drag chosen specifically
+to avoid both a 4x-content-copy memory cost and a prior Android regression).
+The fix had to work inside this, not against it.
+
+**Bug 1 — touch-action was never set, and iOS needed it even though Android
+didn't.** `enableMarqueeDrag` (RC-18) drags by seeking the CSS animation's
+`currentTime` from `pointermove`, entirely custom JS, no native scrolling
+involved. An earlier attempt set `touch-action: pan-x` on the row and it
+was reverted for "disturbing Android scrolling" — correctly identified as
+a regression, but for a reason that got generalized past what it actually
+proved. `pan-x` restricts an element to native HORIZONTAL panning only,
+which blocks native VERTICAL panning (the page's own scroll) from working
+when a gesture starts on that element — that is specifically why it broke
+Android. The fix applied at the time was to remove touch-action entirely,
+leaving it unset. That fixed Android but left iOS with no hint at all,
+meaning iOS's native gesture recognizer — which decides pan direction at
+the compositor level, before JS ever sees pointer events — is free to
+independently guess that an ambiguous (part-vertical) touch is a page-scroll
+gesture and start moving the page natively, AT THE SAME TIME the JS drag
+handler is also seeking the animation. Two systems driving motion from one
+gesture is what "can't scroll properly" was. The correct value was `pan-y`
+(explicitly keep vertical panning native, reserve everything else for JS)
+— the mirror image of `pan-x`, not "no value." Set on `.cards-grid` in both
+the base and mobile-breakpoint rule (`styles.css`).
+
+**Bug 2 — Global Safari inherited Continents' memory-management machinery
+despite never having Continents' problem.** Measured: Global Safari's 3
+rows hold 18 unique images at their already-compressed size, totaling
+about 11 MB decoded — nowhere near iOS's ~80-120 MB ceiling, and nothing
+like Continents' 7-row, scroll-accumulated case that actually motivated
+RC-21/23's park/unpark system. Two consequences of applying it here anyway,
+both matching the user's report:
+  - Rows 2-3's cold-start `data-src` deferral (RC-21) delayed their first
+    load until the observer confirmed proximity — solving decode-queue
+    contention that 11 MB total was never going to cause, while producing
+    a real, user-visible delay ("coming late... blank until then").
+  - The park/unpark cycle (RC-23) added an ongoing hydration/restore timing
+    path with nothing worth protecting against on this section — and
+    RC-24's investigation (a row stuck at 0 loaded while siblings loaded
+    fine) is equally consistent with that timing path itself being the
+    defect, not the memory pressure it was built to guard against.
+  Fix: rows 2-3's images in `index.html` are eager `src` again (matching
+  row 1 — all 24 `data-src` occurrences converted, confirmed nowhere else
+  in the codebase before changing). The observer in `script.js` now calls
+  `setRowImagesParked` only for `.continent-marquee-track` — Global Safari
+  keeps the `.marquee-idle` GPU-layer release (still correct, cheap, and
+  unrelated to this) but never has its `src` touched again. The now-dead
+  `hydrateRowImages` function and its call site are removed rather than
+  left as unused cruft. RC-24's try/catch isolation and periodic sweep are
+  untouched and still run across every row — harmless and still useful as
+  a genuine-network-failure retry, just with nothing to find on Global
+  Safari day to day since there is no data-src or parked src left there.
+
+**Verified against the real `dist/` build:** all 3 Global Safari rows show
+24/24 loaded instantly on cold load (no delay, confirmed both via the debug
+panel and WebKit automation) and stay that way — no more park/unpark cycle
+to interrupt them. Continents' 7 rows behave exactly as before RC-25 (park
+on scroll-past, restore on return), confirming the re-scoping did not
+touch that page. `touch-action: pan-y` is applied and computed correctly;
+dispatched a real horizontal PointerEvent sequence at the row and confirmed
+the drag handler still seeks `currentTime` correctly (advances forward on
+a leftward drag, matching the documented "drag right pulls earlier content
+into view" contract) with the animation staying in `running` state
+throughout. Zero console errors, zero broken images, in the full WebKit
+suite (`test-webkit.mjs`).
+
+**What this can't verify from here:** whether `pan-y` actually resolves the
+gesture-arbitration ambiguity on a real iPhone is inherently something only
+real hardware can confirm — `touch-action` is standard, well-supported CSS
+(not experimental), and `pan-y` is the textbook-correct value for "JS owns
+one axis, native scrolling keeps the other," but simulated PointerEvents
+from automation do not exercise the same native compositor-level gesture
+recognition a real touchscreen does. This is the next thing to confirm on
+a real device: does the row now scroll smoothly, and does starting a
+vertical scroll on top of a Global Safari row move the page normally rather
+than getting caught by the row.
+
 ### What's still true after RC-21
 
 - No real iPhone has run this exact build — verification above is a real
