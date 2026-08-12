@@ -221,6 +221,83 @@ while stationary, not mid-scroll), the next lever is further cutting Global
 Safari's own resident footprint (Phase 2.1, still unstarted) rather than
 recovery-after-the-fact.
 
+## RC-24 (2026-08-13) — error isolation + a self-heal sweep, after the UA-spoof lead didn't pan out
+
+User found that switching Chrome's User-Agent to an iPhone Safari string
+(a "User-Agent Switcher" extension) reliably showed Global Safari's row 1
+stuck at 0 images loaded ("pending" — i.e. still holding `data-src`, never
+hydrated) while row 0 and row 2 loaded fine, and it stayed that way even
+after waiting. Since a UA string swap alone does not change the rendering
+or JS engine (still Chromium/V8 underneath), and this project's own code
+has zero UA-sniffing anywhere (checked directly), a reproducible result
+from that setup would point at a timing bug in our own code, not an
+iOS-only rendering quirk — worth chasing hard.
+
+**Extensive reproduction attempts, all using the real system Chrome via
+Playwright with a spoofed iPhone UA + mobile viewport:** instant localhost,
+throttled network (~1.6Mbps) against the live site, an aggressive scroll
+that intentionally moved rows out of the buffer, and — closest to the
+user's actual sequence — a single scroll to the section then holding
+stationary for 40 seconds under heavy throttling (400kbps/400ms latency,
+closer to a real weak mobile connection). None reproduced a *permanent*
+stuck state. Under heavy throttling every row took 20-30 seconds to finish
+(real bandwidth math for ~30 images at 400kbps) but always finished.
+
+**What this did surface, from re-reading the observer under scrutiny
+rather than from a reproduction:** `entries.forEach(callback)` has no
+per-entry error isolation. If processing any single entry throws, the
+exception propagates out of `forEach` and every entry queued after it in
+that same callback invocation is silently never processed — no console
+error a user would notice, no visual sign beyond the row just never
+updating. If that row's intersection ratio doesn't cross a threshold again
+on its own, the observer has no reason to ever revisit it, and it stays in
+whatever state it was left in — which for a not-yet-hydrated Global Safari
+row 2/3 is exactly "idle=false, still holding data-src, 0 loaded, forever."
+This can't be confirmed as *the* original trigger without either a stack
+trace from the user's real session or a reliable repro, neither available —
+but it exactly matches the reported shape, and fixing it is risk-free
+regardless: every statement inside was already expected to succeed.
+
+**Fix, two parts:**
+1. Each entry in the observer callback is now wrapped in its own
+   try/catch, logged via `console.error` if it fires. One row's processing
+   can no longer prevent any other row, in the same batch or not, from
+   being handled correctly.
+2. A new independent safety net, `sweepStuckMarqueeImages()`, runs every
+   4 seconds regardless of the observer: it re-checks every row the
+   observer currently considers active (not `.marquee-idle`) and fixes
+   anything inconsistent with that — an un-hydrated `data-src` left over
+   from a skipped batch, or a real `src` that finished attempting and came
+   back with `naturalWidth` 0 (a genuine network failure, for which this
+   codebase previously had no retry anywhere). Re-setting `src` to its own
+   value forces a fresh request and decode. This is deliberately a second,
+   independent path to the same end state as the observer — a failure in
+   one does not depend on the other for recovery. The debug panel now
+   surfaces a `Sweep fixes: N` counter so this is directly visible if it
+   ever fires on a real device.
+
+**Verified:** artificially forced a row into the exact reported state
+(active, all 24 images reset to `data-src`, never hydrated) against the
+real `dist/` build — the sweep detected and fixed all 24 within one 4s
+cycle, confirming the recovery path works independent of whatever
+originally caused the stall. Full WebKit suite (`test-webkit.mjs`) still
+reports zero console errors, zero broken images, self-heal intact on both
+pages.
+
+**Also added:** `test-ua-repro.mjs` — a saved, reusable reproduction
+harness (real system Chrome, spoofed iPhone UA, configurable network
+throttling) for the next time this needs re-testing, so this doesn't have
+to be rebuilt from scratch.
+
+**Still unresolved:** the user's exact stuck-forever observation was not
+reproduced on demand, so RC-24 is a hardening fix for the most plausible
+mechanism matching the reported shape, not a confirmed root-cause fix.
+Given the sweep is now visible in the debug panel (`Sweep fixes: N`), the
+next real-device check should watch specifically for whether that counter
+ever moves — if it does, RC-24 caught something and recovered it; if a row
+is still stuck with the counter at 0, this theory is wrong and the search
+continues elsewhere.
+
 ### What's still true after RC-21
 
 - No real iPhone has run this exact build — verification above is a real

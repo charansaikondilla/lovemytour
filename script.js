@@ -58,6 +58,7 @@ function initDebugPanel() {
       <div style="color:#0f0; font-weight:bold;">TOTAL</div>
       <div>Images: ${totalLoaded}/${allImgs.length}</div>
       <div style="color:${totalBroken > 0 ? '#f00' : '#0f0'};">Broken: ${totalBroken}</div>
+      <div style="color:${window.__marqueeSweepFixCount ? '#ff0' : '#0f0'};">Sweep fixes: ${window.__marqueeSweepFixCount || 0} ${window.__marqueeSweepFixCount ? '(recovered a stuck image — see RC-24)' : ''}</div>
       <div>Page: ${window.location.hash || '#home'}</div>
     </div>`;
 
@@ -2038,24 +2039,45 @@ document.addEventListener('DOMContentLoaded', () => {
       initMarquees.seen = new WeakSet();
       initMarquees.observer = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
-          const track = marqueeTrackIn(entry.target);
-          if (!track) return;
-          const idle = !entry.isIntersecting;
-          // Note the polarity: we ADD .marquee-idle to park an offscreen row,
-          // and rows animate by default in CSS. Never the reverse — see the
-          // .marquee-idle comment in styles.css. If this callback never fires
-          // (or stops firing) the rows keep animating, which is the safe
-          // outcome; gating "is it running?" on this observer is what would
-          // turn an observer hiccup into a permanently frozen row.
-          track.classList.toggle('marquee-idle', idle);
-          if (!idle) {
-            // Cold-start data-src -> src for Global Safari rows 2-3 (see
-            // hydrateRowImages above); a no-op for every other row/track.
-            hydrateRowImages(track);
+          // RC-24 FIX: `entries.forEach` has no per-entry error isolation —
+          // if processing ANY entry throws, every entry queued after it in
+          // THIS SAME BATCH is silently skipped, because the exception
+          // propagates out of forEach entirely rather than just failing
+          // that one iteration. A row skipped this way keeps whatever state
+          // it already had (often still holding data-src, never hydrated)
+          // and, if its intersection ratio never crosses a threshold again,
+          // the observer has no reason to fire for it a second time — stuck
+          // indefinitely, with nothing in the DOM or this debug panel
+          // showing an error, because nothing ever threw where anyone could
+          // see it. A user's real-device report of exactly this shape (one
+          // row permanently stuck at 0 loaded while its siblings in the same
+          // batch loaded fine) is what this guards against — try/catch here
+          // cannot regress anything, since every statement inside was
+          // already expected to succeed.
+          try {
+            const track = marqueeTrackIn(entry.target);
+            if (!track) return;
+            const idle = !entry.isIntersecting;
+            // Note the polarity: we ADD .marquee-idle to park an offscreen
+            // row, and rows animate by default in CSS. Never the reverse —
+            // see the .marquee-idle comment in styles.css. If this callback
+            // never fires (or stops firing) the rows keep animating, which
+            // is the safe outcome; gating "is it running?" on this observer
+            // is what would turn an observer hiccup into a permanently
+            // frozen row.
+            track.classList.toggle('marquee-idle', idle);
+            if (!idle) {
+              // Cold-start data-src -> src for Global Safari rows 2-3 (see
+              // hydrateRowImages above); a no-op for every other row/track.
+              hydrateRowImages(track);
+            }
+            // RC-21, widened RC-23: release/restore decoded image memory
+            // for every row, Global Safari included — see
+            // setRowImagesParked above.
+            setRowImagesParked(track, idle);
+          } catch (err) {
+            console.error('[marquee] observer entry failed, row skipped this batch:', err);
           }
-          // RC-21, widened RC-23: release/restore decoded image memory for
-          // every row, Global Safari included — see setRowImagesParked above.
-          setRowImagesParked(track, idle);
         });
       }, {
         // Un-park a row well BEFORE it scrolls into view, so its layer (and,
@@ -2124,6 +2146,51 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }, 200);
   });
+
+  // RC-24 SAFETY NET — independent of the IntersectionObserver above on
+  // purpose. Real-device evidence (a user's debug-panel screenshots) showed
+  // a row that the panel itself reported as "not idle" — i.e. the observer
+  // considers it near/onscreen — permanently stuck with its images never
+  // hydrated, while sibling rows in the same section loaded normally. Two
+  // candidate causes, neither disprovable from a Windows dev machine, and
+  // both survivable by the same fix:
+  //   1. entries.forEach in the observer above has no per-entry error
+  //      isolation (see the try/catch added there in RC-24): one row's
+  //      processing throwing silently skips every row queued after it in
+  //      that batch, and if that row's intersection ratio never crosses a
+  //      threshold again, the observer has no reason to ever revisit it.
+  //   2. A genuinely failed image request (a real network error on a poor
+  //      mobile connection, not merely a slow one) has no retry anywhere in
+  //      this codebase — it just stays broken.
+  // This sweep does not know or care which one happened. Every few seconds
+  // it re-checks every row the observer currently considers active
+  // (not .marquee-idle) and fixes anything inconsistent with that: an
+  // un-hydrated data-src left over from a skipped batch, or a real `src`
+  // that finished attempting and came back with naturalWidth 0. Re-setting
+  // `src` to its own value forces the browser to re-request and re-decode —
+  // recovery, not just detection. This is a second, independent path to the
+  // same end state as the observer, so a failure in one does not depend on
+  // the other to recover. Cheap: only touches rows already marked active,
+  // and only images already showing a problem.
+  window.__marqueeSweepFixCount = 0;
+  function sweepStuckMarqueeImages() {
+    document.querySelectorAll('.marquee-inner, .continent-marquee-track').forEach((track) => {
+      if (track.classList.contains('marquee-idle')) return;
+      track.querySelectorAll('img').forEach((img) => {
+        if (img.hasAttribute('data-src')) {
+          img.src = img.dataset.src;
+          img.removeAttribute('data-src');
+          window.__marqueeSweepFixCount++;
+        } else if (img.getAttribute('src') && img.complete && img.naturalWidth === 0) {
+          const src = img.getAttribute('src');
+          img.removeAttribute('src');
+          img.src = src;
+          window.__marqueeSweepFixCount++;
+        }
+      });
+    });
+  }
+  setInterval(sweepStuckMarqueeImages, 4000);
 
   function initContinentsHeroSlider() {
     const slides = document.querySelectorAll('.continents-hero-slide');
