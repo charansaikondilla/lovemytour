@@ -1725,6 +1725,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // Belt-and-braces: never write a non-finite value into the custom
     // property, for the invalid-at-computed-value-time reason above.
     if (!Number.isFinite(seconds)) return;
+
+    // RC-27 FIX: this function re-runs any time a relayout is suspected
+    // (the resize handler below, called for the exact reasons the RC-19
+    // comment two lines down already names — address bar collapse,
+    // orientation change, a late reflow) — and on a phone, that can happen
+    // in the middle of an already-running animation, not just at page load.
+    // `currentTime` is an absolute millisecond value; changing the CSS
+    // duration underneath it without also adjusting `currentTime` shifts
+    // what fraction of the loop that same absolute value now represents,
+    // which is a visible jump to a different point in the track — on a
+    // route that can fire from ordinary scrolling with no user interaction
+    // at all. Capture the CURRENT position as a fraction of the OLD
+    // duration before changing anything, then restore that same fraction
+    // against the NEW duration afterward, so a speed retune can never move
+    // the row's visual position, regardless of what any given engine would
+    // have done left to its own devices.
+    const anim = track.getAnimations()[0];
+    const oldDuration = anim ? Number(anim.effect.getTiming().duration) || 0 : 0;
+    const oldCurrentTime = anim ? Number(anim.currentTime) || 0 : 0;
+    const progress = oldDuration > 0
+      ? (((oldCurrentTime % oldDuration) + oldDuration) % oldDuration) / oldDuration
+      : null;
+
     track.style.setProperty('--marquee-duration', seconds.toFixed(2) + 's');
 
     // RC-19 FIX: drive the keyframes with an absolute pixel distance rather
@@ -1741,10 +1764,61 @@ document.addEventListener('DOMContentLoaded', () => {
     // The CSS keeps `50%` as the var() fallback, so the animation is still
     // correct if this never runs.
     track.style.setProperty('--marquee-shift', Math.round(loopWidth) + 'px');
+
+    if (progress !== null) {
+      const liveAnim = track.getAnimations()[0];
+      if (liveAnim) liveAnim.currentTime = progress * seconds * 1000;
+    }
   }
 
   function marqueeTrackIn(row) {
     return row.querySelector('.marquee-inner, .continent-marquee-track');
+  }
+
+  // RC-28 FIX — the actual mechanism behind "the row ends and goes blank"
+  // after some time. ensureMarqueeFill/tuneMarqueeSpeed only ever ran once,
+  // from initMarquees' one-time setup below (or a full viewport resize).
+  // Measured on a real WebKit run: a row's track can measure 660px right
+  // after that one-time setup, then grow to 6248px roughly 300ms later —
+  // module scripts are deferred, but that only guarantees the DOM is
+  // parsed by the time they run, not that the external stylesheet has
+  // finished loading AND applying. A getBoundingClientRect() read that
+  // lands in that gap measures unstyled (or partially styled) layout,
+  // dramatically smaller than the track's true, correctly-styled size.
+  // Nothing ever re-measured to catch up: the RC-19 retry a few lines below
+  // only re-tries a row that measured EXACTLY zero, which a too-small-but-
+  // nonzero unstyled measurement never triggers, and no viewport resize
+  // event fires just because a stylesheet finished loading after the DOM
+  // did. The result: --marquee-shift stayed frozen at 330px — one tenth of
+  // the track's real 3124px half-width — for the rest of the session. An
+  // animation trying to represent 3124px of cards by only ever translating
+  // 330px loops back far short of a real card boundary, which is the
+  // visible seam behind "the row ends / there is blank space".
+  //
+  // A ResizeObserver on the track itself is the fix, rather than trying to
+  // guess a longer delay before the one-time measurement: it reacts to the
+  // track's ACTUAL rendered size changing for ANY reason — a late
+  // stylesheet, a late web font, an image affecting layout, an orientation
+  // change — instead of a fixed set of events assumed to cover every cause.
+  // tuneMarqueeSpeed already preserves the animation's visual position
+  // across a re-tune (RC-27), so a correction triggered here is never
+  // itself a visible jump. Applies to every row initMarquees sets up —
+  // Global Safari and Continents both share this same setup path and are
+  // equally exposed to the same stylesheet-timing race.
+  function watchMarqueeTrackWidth(row, track) {
+    if (track.__marqueeResizeObserver || typeof ResizeObserver === 'undefined') return;
+    let lastWidth = track.scrollWidth;
+    const ro = new ResizeObserver(() => {
+      const width = track.scrollWidth;
+      if (width === lastWidth) return;
+      lastWidth = width;
+      // Same order as the one-time setup: fill first, it changes the
+      // track's width, which is what tuneMarqueeSpeed then measures.
+      ensureMarqueeFill(row, track);
+      tuneMarqueeSpeed(track);
+    });
+    ro.observe(track);
+    track.__marqueeResizeObserver = ro;
   }
 
   // RC-19: point a card at its width-capped derivative (see
@@ -1860,7 +1934,24 @@ document.addEventListener('DOMContentLoaded', () => {
     let engaged = false;
     let startX = 0;
     let startY = 0;
-    let startTime = 0;
+    // RC-27 FIX: this used to be "lastX", tracking the pointer's position at
+    // pointerdown, and every pointermove re-derived currentTime from the
+    // TOTAL distance travelled since then (dx = e.clientX - startX). That
+    // makes the size of a single jump proportional to how far the whole
+    // gesture has gone, not how far this one move event moved — a long, fast
+    // real-finger swipe (or a browser coalescing/throttling pointermove
+    // under load, which is exactly the condition already suspected
+    // elsewhere in this file) can deliver a `dx` in the hundreds of pixels
+    // in one event, which the duration/copyWidth ratio can turn into a jump
+    // of several SECONDS of animation position in a single frame — the
+    // track visually snaps to a completely different part of the loop
+    // instead of panning, which reads as the row "disappearing" mid-swipe.
+    // Tracking the position as of the LAST move event instead and only ever
+    // applying the delta since then bounds every single adjustment to
+    // whatever the finger actually moved between two consecutive events,
+    // however large or small that gap was — it can never accumulate into a
+    // one-shot large jump regardless of gesture speed or event coalescing.
+    let lastX = 0;
 
     const currentAnimation = () => track.getAnimations()[0] || null;
 
@@ -1872,7 +1963,7 @@ document.addEventListener('DOMContentLoaded', () => {
       engaged = false;
       startX = e.clientX;
       startY = e.clientY;
-      startTime = Number(anim.currentTime) || 0;
+      lastX = e.clientX;
     }, { passive: true });
 
     row.addEventListener('pointermove', (e) => {
@@ -1901,9 +1992,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const copyWidth = track.scrollWidth / 2;
       if (!duration || !copyWidth) return;
 
-      // Dragging right (dx > 0) should pull earlier content into view, which
-      // means running the animation backwards.
-      let t = startTime - dx * (duration / copyWidth);
+      // RC-27: step is the delta since the LAST move event only — see the
+      // comment on `lastX` above for why this replaces a total-since-start
+      // delta.
+      const stepDx = e.clientX - lastX;
+      lastX = e.clientX;
+      const startTime = Number(anim.currentTime) || 0;
+
+      // Dragging right (stepDx > 0) should pull earlier content into view,
+      // which means running the animation backwards.
+      let t = startTime - stepDx * (duration / copyWidth);
       // Wrap into [0, duration) so dragging never hits an end in either
       // direction — this is what keeps the manual scroll infinite too.
       t = ((t % duration) + duration) % duration;
@@ -2069,6 +2167,10 @@ document.addEventListener('DOMContentLoaded', () => {
       ensureMarqueeFill(row, track);
       tuneMarqueeSpeed(track);
       enableMarqueeDrag(row, track);
+      // RC-28: catch this same pair getting it wrong here (a stylesheet not
+      // fully applied yet) and correct it automatically once the track's
+      // real size is known — see watchMarqueeTrackWidth above.
+      watchMarqueeTrackWidth(row, track);
       initMarquees.observer.observe(row);
     });
 

@@ -436,6 +436,113 @@ coordinates) at all 3 rows independently — all 3 now report the identical
 `currentTime` change in the identical direction, where row 2 previously
 would have diverged. Zero console errors.
 
+## RC-27/RC-28 (2026-08-13) — the actual mechanism behind "the row ends and goes blank," found by measuring rather than guessing
+
+User reported infinite scroll breaking in both directions ("swipe left...
+disappearing") and rows going blank after some time, asking for the
+underlying connection to be found rather than another guess. Investigated
+by writing tests that sample the real state over time on a real WebKit
+run, rather than reasoning about the code in the abstract — and that
+surfaced a bug nothing in this project's prior testing had ever caught.
+
+### RC-28 — the primary fix: `--marquee-duration`/`--marquee-shift` going permanently stale
+
+Sampled a row's `track.scrollWidth` against its own `--marquee-shift` CSS
+variable at several points after page load, on a real WebKit run, with no
+manual interference:
+
+```
+t=253ms   trackScrollWidth=660   shift=330px   duration=12.00s
+t=564ms   trackScrollWidth=6248  shift=330px   duration=12.00s   <- already wrong
+t=3735ms  trackScrollWidth=6248  shift=330px   duration=12.00s   <- still wrong
+```
+
+`ensureMarqueeFill`/`tuneMarqueeSpeed` measure the track once, from
+`initMarquees`'s one-time setup (or a full viewport resize). Module scripts
+are deferred, which only guarantees the DOM is parsed by the time they run
+— not that the external stylesheet has finished loading and applying. A
+measurement landing in that gap reads unstyled (or partially styled)
+layout: dramatically smaller than the track's true, correctly-styled size.
+Nothing re-measured to catch up — the RC-19 retry only re-tries a row that
+measured EXACTLY zero, which a too-small-but-nonzero unstyled measurement
+never triggers, and no viewport resize event fires just because a
+stylesheet finished loading after the DOM already had. The result: an
+animation trying to represent 3124px of real card content per loop by only
+ever translating 330px — a full order of magnitude short. The loop resets
+at 330px, far short of any real card boundary, for the entire session. That
+mismatch — not a one-off glitch — is the actual seam behind "the row ends
+and goes blank," and it explains why it took "some time": the row looks
+fine until the animation reaches the (wrong, too-early) loop point.
+
+**Fix:** a `ResizeObserver` directly on each track (`watchMarqueeTrackWidth`
+in `script.js`), re-running `ensureMarqueeFill` + `tuneMarqueeSpeed`
+whenever the track's own rendered size actually changes, for any reason —
+a late stylesheet, a late web font, an image affecting layout, an
+orientation change — rather than a fixed list of events assumed to cover
+every cause. Applies to every row `initMarquees` sets up, Global Safari and
+Continents alike, since both share this exact setup path and are equally
+exposed to the same stylesheet-timing race.
+
+**Verified:** re-ran the same sampling script against the fix — the
+observer catches the 660px→6248px growth within one frame of it happening
+and immediately corrects `--marquee-shift`/`--marquee-duration` to match
+(`330px, 12.00s` → `3124px, 78.10s`), then holds stable for the rest of the
+session.
+
+### RC-27 — two supporting fixes, so the correction (and manual dragging) is never itself visible
+
+1. **The drag handler now resolves motion could look like disappearing.**
+   `enableMarqueeDrag` used to compute `currentTime` from the TOTAL distance
+   since the finger first touched the row (`dx = e.clientX - startX`,
+   re-read on every move). For a fast real swipe — or a browser
+   coalescing/throttling pointermove events under load, which is a
+   recurring theme across every RC in this file — a single event can
+   deliver a `dx` in the hundreds of pixels, which the duration/copyWidth
+   ratio can turn into a jump of several SECONDS of animation position in
+   one frame: the track visually snaps to an unrelated part of the loop
+   instead of panning, reading as the row disappearing mid-swipe. Fixed to
+   track the delta since the LAST move event instead (`stepDx`), which
+   bounds every single adjustment to whatever the finger actually moved
+   between two consecutive events — it can no longer accumulate into a
+   one-shot large jump regardless of gesture speed or event coalescing.
+
+2. **`tuneMarqueeSpeed` now explicitly preserves visual position across any
+   duration change.** `currentTime` is an absolute millisecond value;
+   changing the CSS duration underneath it without adjusting `currentTime`
+   shifts what fraction of the loop that same value represents — a visible
+   jump. Before changing `--marquee-duration`, the function now captures
+   the current position as a fraction of the OLD duration, then restores
+   that same fraction against the NEW duration afterward — defensively,
+   rather than trusting a given engine's implicit behavior on a duration
+   change, which is exactly the kind of cross-engine inconsistency this
+   whole file is full of examples of.
+
+**Verified (after correcting an initial test methodology mistake — directly
+poking `--marquee-duration` via `style.setProperty` is an unprotected write
+the real code never performs, and gave a false failure the first time
+around):** forced a genuine track-width change (real DOM change, not a
+direct property write) and confirmed the animation's progress fraction
+before and after stays within 0.7-0.9% — no visible jump — while the
+duration itself does genuinely change to match the new width.
+
+**New regression test, `test-marquee-tuning.mjs`:** asserts every track's
+`--marquee-shift` equals half its actual current `scrollWidth` (the
+invariant that silently broke for an entire session before RC-28), and that
+a genuine width change never moves the animation's visual position by more
+than 2%. Kept as its own file rather than folded into `test-webkit.mjs`
+because this bug was invisible to every check already in that suite —
+console errors, broken images, and animation play-state all reported clean
+the entire time this was wrong.
+
+**What this doesn't fully close out:** sampling `getComputedStyle().transform`
+at ~60ms intervals during normal playback showed a stepped rather than
+continuous pattern. The best explanation found is that reading a
+compositor-driven animation's value from JS doesn't necessarily reflect a
+fresh per-frame sync in WebKit (forcing that sync on every read is its own
+cost engines avoid), rather than the actual GPU-rendered motion being
+choppy — but this is inherently hard to fully settle without a real device
+recording actual visual playback rather than JS polling it.
+
 ### What's still true after RC-21
 
 - No real iPhone has run this exact build — verification above is a real
