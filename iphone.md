@@ -143,6 +143,84 @@ have) — worth ruling out by testing once off a call with a charged battery,
 since a real fix on a maximally-constrained device may still look identical
 to a real fix that only needed normal headroom.
 
+## RC-22 (2026-08-13) — on-page debug panel
+
+User has no Mac, so no Safari Web Inspector. Added a small green DEBUG
+toggle (top-left of every page) that opens a live panel (updates every
+500ms) showing per marquee row: idle state, loaded/total images, pending
+(parked or mid-hydration) count, and broken count, plus a page total.
+Native iPhone screenshot (Volume Up + Power) captures it — no other tooling
+needed.
+
+Caught and fixed a bug in the panel before shipping: v1 flagged every
+parked or not-yet-hydrated image as "broken" purely because `naturalWidth`
+is 0 for those by design, which would have shown a wall of false red X's
+on Continents (most of its 7 rows are off-screen at any scroll position).
+Fixed to only count an image broken if it has a live `src` that actually
+failed to decode.
+
+## RC-23 (2026-08-13) — the first real iPhone evidence, and why RC-21 wasn't enough
+
+The user ran RC-22's debug panel on their actual iPhone (screenshots in
+`iphone error/`, not on a call this time, ~70% battery — ruling out the
+low-power-mode theory as the primary cause) and sent back the first real
+on-device diagnostic data this entire investigation has ever had.
+
+**What it showed, scrolled to the bottom of Continents:** all 7 continent
+rows AND all 3 Global Safari rows reporting `pending=<full count>,
+imgs=0/<total>` — correct and expected, since RC-21's design releases a
+row's images once scrolled past. Not a bug by itself.
+
+**What it showed on Home, mid-scroll through Global Safari — the real
+finding:** row 1 visually blank, row 2 rendering fine. This is backwards
+from what RC-21 should produce: row 1 ships `eager` in raw HTML
+specifically so it never depends on JS; row 2 depends on the observer
+hydrating it. Row 1 failing while row 2 (hydrated more recently) worked is
+the exact signature RC-19 first diagnosed — iOS silently evicting a
+decoded backing store while the `<img>` element's own state (`src`,
+`complete`, `naturalWidth`) stays fully intact and reports nothing wrong.
+
+This also explains a gap in RC-22's own debug panel: there is no
+JS-queryable signal for "this bitmap was evicted." `naturalWidth > 0` can
+be true while the row paints nothing. The debug panel would have shown
+row 1 as ✅ the whole time this was happening.
+
+**Why RC-21 didn't cover this:** it deliberately left Global Safari's
+images permanently resident once loaded, reasoning that only Continents
+(7 rows, real scroll-past accumulation) had anything to reclaim, and that
+extending the same park/unpark to Global Safari risked a blank-flash race
+against the SPA's route switch. That reasoning under-weighted the failure
+actually being reported: a resident image with no periodic path back to a
+fresh decode has no way to recover from a silent eviction, no matter how
+small the total resident footprint is kept.
+
+**Fix:** `setRowImagesParked` now applies to every marquee row, Global
+Safari included — see the widened comment in `script.js`. Parking still
+requires the observer to report a row outside its 250px lead zone, so nothing
+changes about default visibility (rows still animate/show by default). The
+practical effect: any row that is scrolled away from and back gets a
+guaranteed fresh `src` assignment on return, which forces a new decode
+independent of whatever the browser silently did to the old one while it
+was out of view — turning "evicted once, blank for the rest of the
+session" into "self-heals the next time the row is scrolled near."
+
+**The SPA-flash risk, re-examined rather than avoided:** `.page-view.active`
+plays a 500ms opacity fade-in (`fadeInView`, `styles.css`). Navigating home
+from Continents parks/restores exactly like any other visibility change,
+but the fade gives the observer's restore callback a full frame budget
+before the row is more than barely visible. Verified live (real `dist/`
+build): Home → Continents → Home leaves all 3 Global Safari rows at
+`24/24` loaded, `0` broken.
+
+**Still unresolved:** this raises recovery odds for a row that was
+off-screen when evicted; it does not detect or recover a row evicted
+*while the user is looking directly at it* — no JS API can currently tell
+the difference between "decoded and painting" and "decoded metadata only,
+backing store gone." If reports continue with this specific pattern (blank
+while stationary, not mid-scroll), the next lever is further cutting Global
+Safari's own resident footprint (Phase 2.1, still unstarted) rather than
+recovery-after-the-fact.
+
 ### What's still true after RC-21
 
 - No real iPhone has run this exact build — verification above is a real

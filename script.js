@@ -1933,8 +1933,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // RC-21 FIX — the actual leak behind a continent going blank partway
-  // through a scroll session, and why it was never the same continent twice.
+  // RC-21 FIX, widened by RC-23 — the actual leak behind a continent going
+  // blank partway through a scroll session, and why it was never the same
+  // continent twice.
   //
   // The observer below has always toggled .marquee-idle, which releases the
   // GPU compositing layer (will-change) for an offscreen row. It has never
@@ -1950,22 +1951,36 @@ document.addEventListener('DOMContentLoaded', () => {
   // reports — it was never really about that specific row, it was about how
   // much had already piled up by the time the user scrolled to it.
   //
-  // Scoped to Continents rows only (.continent-marquee-track), not Global
-  // Safari (.marquee-inner). Global Safari is 3 rows clustered at the top of
-  // the home page — nothing to accumulate past. It also sits behind the
-  // SPA's route switch: navigating to Continents sets the whole home page to
-  // display:none, which this same observer reads as "not intersecting" too.
-  // Parking on that signal would strip Global Safari's images on every visit
-  // to Continents, racing the observer's callback against the route's next
-  // paint to restore them before the user scrolls back — a real risk of a
-  // blank flash on return, which the original design explicitly ruled out
-  // (see the .marquee-idle comment below: never hide by default). Continents
-  // rows only ever go "not intersecting" by genuinely scrolling past them, so
-  // that race does not apply there.
+  // RC-21 scoped this to Continents only, keeping Global Safari's images
+  // permanently resident once loaded. RC-23 real-device evidence (debug
+  // panel screenshots, see iphone.md) showed that was wrong: Global Safari's
+  // row 1 — eager, never parked, the row the original design treated as the
+  // one safe default — was the row reported BLANK, while row 2, which the
+  // observer had more recently hydrated and therefore more recently
+  // re-decoded, rendered fine. That is the signature of exactly the failure
+  // RC-19 first diagnosed: iOS evicting a decoded backing store while the
+  // <img> element's own state (src, complete, naturalWidth) stays fully
+  // intact and reports nothing wrong — which is also why this class of bug
+  // is invisible to the debug panel's naturalWidth-based checks. There is no
+  // JS-queryable signal for "this bitmap was silently evicted." The only
+  // available defense is to force a fresh decode whenever a row is confirmed
+  // about to matter again — which parking and un-parking already does as a
+  // side effect, and which a row that is never parked never gets.
   //
-  // Layout is unaffected: .country-photo-img is sized via CSS
-  // (width/height: 100% of a fixed-size .country-photo-card, not the image's
-  // own intrinsic size), so removing `src` cannot collapse the row.
+  // So as of RC-23 this applies to every marquee row, Global Safari included.
+  // The SPA-route risk noted in earlier RCs — navigating away sets the whole
+  // page to display:none, which this observer also reads as "not
+  // intersecting," so returning to Home requires the callback to restore
+  // images before the user perceives them — is real but bounded: .page-view
+  // .active plays a 500ms opacity fade-in (styles.css, fadeInView), which
+  // gives the observer's callback a full frame budget to restore `src`
+  // before the row is more than barely visible. That risk is preferable to
+  // the confirmed one: a row that, once evicted, never recovers for the rest
+  // of the session because nothing ever asks the browser to decode it again.
+  //
+  // Layout is unaffected: .country-photo-img / .card-bg are sized via CSS
+  // (width/height: 100% of a fixed-size card, not the image's own intrinsic
+  // size), so removing `src` cannot collapse any row.
   function setRowImagesParked(track, parked) {
     track.querySelectorAll('img').forEach((img) => {
       if (parked) {
@@ -1991,16 +2006,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // decode queue running out of budget partway through an oversized initial
   // batch, not one specific row being broken.
   //
-  // Row 1 keeps eager `src` untouched: it is the one row guaranteed to be at
-  // or near the top of the viewport on load, so it must not depend on a JS
-  // observer callback for first paint (same "never depend on JS for the
-  // default state" rule as .marquee-idle). Rows 2 and 3 hydrate — src set
-  // from data-src, real network request fires — only once the observer
-  // reports them within the same 250px lead-in already used elsewhere, which
-  // spreads the 15-image decode burst out over the scroll instead of forcing
-  // it all at once on page load. One-way and permanent: unlike Continents,
-  // Global Safari is only 3 rows clustered together, so there is nothing to
-  // reclaim by re-stripping a row that scrolls back out of view.
+  // Row 1 keeps eager `src` untouched in the HTML: it is the one row
+  // guaranteed to be at or near the top of the viewport on load, so its
+  // FIRST paint must not depend on JS running at all (same "never depend on
+  // JS for the default state" rule as .marquee-idle) — the browser paints it
+  // from the raw markup before any script executes. Rows 2 and 3 hydrate —
+  // src set from data-src, real network request fires — only once the
+  // observer reports them within the same 250px lead-in used elsewhere,
+  // spreading the 15-image decode burst out over the scroll instead of
+  // forcing it all at once on page load.
+  //
+  // This only covers the initial load. As of RC-23 all three rows, including
+  // row 1, are also subject to the ongoing park/unpark in
+  // setRowImagesParked above once JS is running — see that function's
+  // comment for why a row that is never parked can never recover from a
+  // silent decode eviction.
   function hydrateRowImages(track) {
     track.querySelectorAll('img[data-src]').forEach((img) => {
       img.src = img.dataset.src;
@@ -2028,13 +2048,14 @@ document.addEventListener('DOMContentLoaded', () => {
           // outcome; gating "is it running?" on this observer is what would
           // turn an observer hiccup into a permanently frozen row.
           track.classList.toggle('marquee-idle', idle);
-          // RC-21: also release/restore decoded image memory — see above.
-          if (track.classList.contains('continent-marquee-track')) {
-            setRowImagesParked(track, idle);
-          } else if (!idle) {
-            // Global Safari: one-way cold-start hydration only — see above.
+          if (!idle) {
+            // Cold-start data-src -> src for Global Safari rows 2-3 (see
+            // hydrateRowImages above); a no-op for every other row/track.
             hydrateRowImages(track);
           }
+          // RC-21, widened RC-23: release/restore decoded image memory for
+          // every row, Global Safari included — see setRowImagesParked above.
+          setRowImagesParked(track, idle);
         });
       }, {
         // Un-park a row well BEFORE it scrolls into view, so its layer (and,
