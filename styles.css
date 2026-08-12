@@ -632,10 +632,26 @@ body {
   margin-right: 12px !important;
 }
 
-.marquee-inner.marquee-reverse {
-  animation-name: safariMarqueeRight;
-}
-
+/* RC-26 FIX: row 2 used to run this reversed (a separate marquee-reverse
+   class switching animation-name to a mirrored keyframe, safariMarqueeRight
+   — removed below along with that class). It was reported as feeling
+   broken specifically on that row, and re-checking the drag handler
+   (enableMarqueeDrag, script.js) shows why: it seeks the animation via
+   `currentTime = startTime - dx * (duration / copyWidth)`, one formula
+   applied identically regardless of which keyframe is active. For
+   safariMarqueeLeft, increasing currentTime moves the track further
+   negative (visually left) — a leftward drag increasing currentTime
+   therefore moves the row further in the same direction as the finger,
+   which reads as correct. For the mirrored safariMarqueeRight, increasing
+   currentTime moves the track from -shift back toward 0 — visually right —
+   so the exact same leftward drag that correctly pushed rows 1 and 3
+   further left pushed row 2's content the opposite way. Same finger
+   movement, opposite on-screen result depending which row it landed on.
+   Fixing the seek math per-direction was one option; simpler and equally
+   valid given nothing required the rows to alternate is to remove the
+   asymmetry instead — every row now runs the same keyframe, so the same
+   drag formula is correct everywhere by construction rather than by a
+   direction-aware special case. */
 @keyframes safariMarqueeLeft {
   from {
     transform: translate3d(0, 0, 0);
@@ -643,16 +659,6 @@ body {
 
   to {
     transform: translate3d(calc(-1 * var(--marquee-shift, 50%)), 0, 0);
-  }
-}
-
-@keyframes safariMarqueeRight {
-  from {
-    transform: translate3d(calc(-1 * var(--marquee-shift, 50%)), 0, 0);
-  }
-
-  to {
-    transform: translate3d(0, 0, 0);
   }
 }
 

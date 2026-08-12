@@ -400,6 +400,42 @@ a real device: does the row now scroll smoothly, and does starting a
 vertical scroll on top of a Global Safari row move the page normally rather
 than getting caught by the row.
 
+## RC-26 (2026-08-13) — row 2's reverse direction was fighting the drag handler
+
+User identified, from the live site, that row 2 visually scrolled the
+opposite direction from rows 1 and 3, and asked for all three to match.
+
+Re-checking `enableMarqueeDrag` against row 2's reversed keyframe
+(`safariMarqueeRight`, a mirror image of `safariMarqueeLeft`) confirmed this
+was not only a visual-consistency preference — it was an active bug. The
+drag handler seeks the animation with one formula, applied identically
+regardless of which keyframe is active:
+`currentTime = startTime - dx * (duration / copyWidth)`. For
+`safariMarqueeLeft`, increasing `currentTime` moves the track further
+negative (left) — a leftward drag increasing `currentTime` therefore moves
+the row further in the same direction as the finger, which reads as
+correct. `safariMarqueeRight` is the mirror: increasing `currentTime` moves
+the track from `-shift` back toward `0`, i.e. right. So the exact same
+leftward drag that correctly pushed rows 1 and 3 further left pushed row
+2's content the opposite way — same finger movement, opposite on-screen
+result depending which row it landed on. That is a real, demonstrable
+inconsistency, not just a look-and-feel complaint.
+
+**Fix:** removed the `marquee-reverse` class from row 2 in `index.html`
+and deleted the now-unused `@keyframes safariMarqueeRight` /
+`.marquee-inner.marquee-reverse` rule from `styles.css` — all three rows
+now run the identical `safariMarqueeLeft` keyframe. Continents' own,
+separate alternating-direction system (`reverse` class, JS-driven per
+continent index) is untouched; this only affects Global Safari's 3 rows,
+per the user's stated scope.
+
+**Verified against the real `dist/` build:** all 3 rows' computed
+`animation-name` is `safariMarqueeLeft` (no `safariMarqueeRight` remains
+anywhere). Dispatched the identical drag gesture (same start/end
+coordinates) at all 3 rows independently — all 3 now report the identical
+`currentTime` change in the identical direction, where row 2 previously
+would have diverged. Zero console errors.
+
 ### What's still true after RC-21
 
 - No real iPhone has run this exact build — verification above is a real
