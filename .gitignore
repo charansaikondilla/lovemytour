@@ -21,3 +21,7 @@ public/background video/
 public/aeroplane.png
 public/cloud_curve_panel.png
 public/cloud_transparent.png
+
+# Playwright WebKit diagnostic screenshots (test-webkit.mjs output) — ephemeral, regenerate on demand
+webkit-shots/
+test-results/
