@@ -1459,7 +1459,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isHidden = i >= destList.length;
         cardsHTML += `
           <a href="#category/${dest.id}" class="country-photo-card"${isHidden ? ' aria-hidden="true"' : ''}>
-            <img src="${dest.image}" alt="${dest.name}" class="country-photo-img" width="240" height="280" decoding="async" />
+            <img src="${cardThumb(dest.image)}" data-full="${dest.image}" alt="${dest.name}" class="country-photo-img" width="240" height="280" decoding="async" onerror="if(this.dataset.full&&this.src.indexOf('card-thumbs')>-1){this.src=this.dataset.full;}" />
             <div class="country-photo-gradient"></div>
             <span class="country-card-tag">${dest.tag}</span>
             <div class="country-photo-info">
@@ -1542,7 +1542,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       resultsBox.innerHTML = matches.map((d) => `
         <a href="#category/${d.id}" class="continents-search-result">
-          <img src="${d.image}" alt="" class="continents-search-result-img" decoding="async" />
+          <img src="${cardThumb(d.image)}" alt="" class="continents-search-result-img" decoding="async" onerror="this.onerror=null;this.src='${d.image}';" />
           <span class="continents-search-result-text">
             <span class="continents-search-result-name">${d.name}</span>
             <span class="continents-search-result-meta">${d.continentName} &middot; ${d.tag}</span>
@@ -1578,72 +1578,6 @@ document.addEventListener('DOMContentLoaded', () => {
         input.blur();
       }
     });
-  }
-
-  // Initialize continents debug panel
-  function initContinentsDebugPanel() {
-    const btn = document.getElementById('continentsDebugBtn');
-    if (!btn) return;
-
-    const panel = document.createElement('div');
-    panel.className = 'continents-debug-panel';
-    panel.id = 'continentsDebugPanel';
-    document.body.appendChild(panel);
-
-    function updatePanel() {
-      const rows = [...document.querySelectorAll('.continent-marquee-wrapper')];
-      let html = '<div style="font-weight:bold; margin-bottom:8px; border-bottom: 1px solid #22c55e; padding-bottom:8px;">CONTINENTS DEBUG</div>';
-
-      rows.forEach((row, i) => {
-        const track = row.querySelector('.continent-marquee-track');
-        if (!track) return;
-        const imgs = [...track.querySelectorAll('img')];
-        const loaded = imgs.filter(im => im.complete && im.naturalWidth > 0).length;
-        const broken = imgs.filter(im => im.getAttribute('src') && im.complete && im.naturalWidth === 0).length;
-        const pending = imgs.filter(im => !im.complete || im.naturalWidth === 0).length;
-
-        const status = broken > 0 ? '❌' : loaded === imgs.length ? '✅' : '⏳';
-        html += `<div style="margin:6px 0; color:${broken > 0 ? '#ef4444' : '#22c55e'};">
-          Row ${i}: ${status} ${loaded}/${imgs.length} loaded ${broken > 0 ? `${broken} broken` : ''}
-        </div>`;
-      });
-
-      const allImgs = [...document.querySelectorAll('img')];
-      const totalBroken = allImgs.filter(i => i.getAttribute('src') && i.complete && i.naturalWidth === 0).length;
-      const totalLoaded = allImgs.filter(i => i.complete && i.naturalWidth > 0).length;
-
-      html += `<div style="margin-top:12px; border-top: 1px solid #22c55e; padding-top:8px; font-weight:bold;">
-        Total: ${totalLoaded}/${allImgs.length} ${totalBroken > 0 ? `(${totalBroken} broken)` : ''}
-      </div>`;
-
-      panel.innerHTML = html;
-    }
-
-    btn.addEventListener('click', () => {
-      btn.classList.toggle('active');
-      panel.classList.toggle('show');
-      if (panel.classList.contains('show')) {
-        updatePanel();
-      }
-    });
-
-    setInterval(() => {
-      if (panel.classList.contains('show')) {
-        updatePanel();
-      }
-    }, 1000);
-  }
-
-  // Initialize when continents view is shown
-  window.addEventListener('hashchange', () => {
-    if (window.location.hash.startsWith('#continents')) {
-      setTimeout(initContinentsDebugPanel, 100);
-    }
-  });
-
-  // Initialize on page load if continents view
-  if (window.location.hash.startsWith('#continents')) {
-    document.addEventListener('DOMContentLoaded', initContinentsDebugPanel);
   }
 
   // ==========================================================================
