@@ -1853,6 +1853,37 @@ document.addEventListener('DOMContentLoaded', () => {
   // worse-but-silent: the initialiser would run later and reset state the
   // first call had already built, leaving a second orphaned observer.
 
+  // RC-31 FIX, extracted RC-32 — the single reliable way to measure a
+  // marquee track's real one-copy width. track.scrollWidth (and
+  // track.getBoundingClientRect().width) is a WebKit sizing quirk on a
+  // `width: max-content` flex item once its CSS animation +
+  // will-change:transform layer is live — verified via a live WebKit trace
+  // with iPhone emulation: individual cards measured correctly (190px each,
+  // ~208px apart, ~1240px of real content across 6 cards on North America's
+  // row) while track.scrollWidth simultaneously reported 4278px for that
+  // same track, more than 3x too large. Summing each card's own
+  // getBoundingClientRect().width directly (same approach
+  // ensureMarqueeFill's own `measure()` already used reliably) bypasses the
+  // broken track-level measurement entirely instead of trying to correct it.
+  //
+  // RC-32: this was originally inlined only inside tuneMarqueeSpeed (which
+  // drives the auto-scroll distance), but enableMarqueeDrag had its own
+  // separate track.scrollWidth/2 for copyWidth (drag sensitivity) that was
+  // never updated — same inflated number, so a real finger swipe only
+  // produced roughly a third of the visual movement it should have,
+  // reported as "very hard to swipe" on both Android and iPhone. Extracting
+  // one shared measurement both functions call guarantees they can never
+  // silently disagree again, rather than fixing the two call sites with
+  // separately-maintained copies of the same formula.
+  function measureMarqueeLoopWidth(track) {
+    const kids = Array.from(track.children);
+    const halfLen = Math.floor(kids.length / 2) || kids.length;
+    return kids.slice(0, halfLen).reduce((sum, el) => {
+      const style = getComputedStyle(el);
+      return sum + el.getBoundingClientRect().width + (parseFloat(style.marginRight) || 0);
+    }, 0);
+  }
+
   // The markup for every marquee contains the card set TWICE, and the
   // keyframes translate by exactly -50% — one full copy. So one loop covers
   // half the track's real content width.
@@ -1867,36 +1898,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // resolves to none and every row silently stops dead. A local const
     // cannot be sequenced wrong.
     const pxPerSecond = 40;
-    // RC-31 FIX — the real mechanism behind Africa/North America/South
-    // America/Australia going completely blank on real iPhone WebKit.
-    // track.scrollWidth (and track.getBoundingClientRect().width) is
-    // supposed to equal 2x one card-set's real width, since the track is
-    // always built as exactly two equal halves. Verified via a live WebKit
-    // trace with iPhone emulation: individual cards measured correctly
-    // (190px each, ~208px apart, ~1240px of real content across 6 cards on
-    // North America's row) while track.scrollWidth simultaneously reported
-    // 4278px for that same track — more than 3x too large — once the CSS
-    // animation + will-change:transform layer was live. That is a WebKit
-    // sizing quirk on a `width: max-content` flex item under an active
-    // transform animation, not a content problem: the cards themselves were
-    // never wrong. Because --marquee-shift is derived from this number, the
-    // animation tried to travel ~2100px per loop for content that only
-    // spans ~600px one-way — the row slides its real cards completely off
-    // whatever direction it is moving and then travels through a further
-    // ~1500px of empty track before it loops, which is the "blank marquee"
-    // reported for these continents (the short ones are hit hardest because
-    // the gap between real content width and the inflated measurement is a
-    // larger fraction of the loop either way).
-    // Fix: measure the SAME way ensureMarqueeFill's own `measure()` already
-    // does reliably — sum each card's own getBoundingClientRect().width
-    // directly, bypassing the track-level measurement entirely instead of
-    // trying to correct it.
-    const kids = Array.from(track.children);
-    const halfLen = Math.floor(kids.length / 2) || kids.length;
-    const loopWidth = kids.slice(0, halfLen).reduce((sum, el) => {
-      const style = getComputedStyle(el);
-      return sum + el.getBoundingClientRect().width + (parseFloat(style.marginRight) || 0);
-    }, 0);
+    // See measureMarqueeLoopWidth's comment above for why this can't just
+    // read track.scrollWidth.
+    const loopWidth = measureMarqueeLoopWidth(track);
     if (loopWidth <= 0) return;
     const seconds = Math.max(12, loopWidth / pxPerSecond);
     // Belt-and-braces: never write a non-finite value into the custom
@@ -2165,8 +2169,17 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const duration = Number(anim.effect.getTiming().duration) || 0;
-      // One full iteration moves the track by exactly one copy.
-      const copyWidth = track.scrollWidth / 2;
+      // RC-32 FIX: one full iteration moves the track by exactly one copy —
+      // but track.scrollWidth/2 (the old measurement here) is the same
+      // unreliable WebKit read measureMarqueeLoopWidth's comment above
+      // documents, inflated ~3x+ on these tracks. That made a real finger
+      // swipe move the row roughly a third as far as the finger actually
+      // travelled — reported as "very hard to swipe" on both Android and
+      // iPhone. Using the same reliable measurement tuneMarqueeSpeed uses
+      // for --marquee-shift restores accurate 1:1 finger tracking, and
+      // guarantees this can never again silently disagree with the value
+      // that actually drives the CSS animation.
+      const copyWidth = measureMarqueeLoopWidth(track);
       if (!duration || !copyWidth) return;
 
       // RC-27: step is the delta since the LAST move event only — see the
