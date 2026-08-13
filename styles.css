@@ -6009,6 +6009,18 @@ body {
   width: 100%;
   overflow: hidden;
   padding: 8px 0 24px 0;
+  /* RC-29 FIX: mirrors the Global Safari .cards-grid RC-25 fix (see that
+     rule's comment near the top of this file for the full explanation) —
+     this row was missing the same touch-action hint, even though it uses
+     the identical enableMarqueeDrag() JS drag path (script.js). Without it,
+     the browser's native gesture recognizer has no guidance on an ambiguous
+     touch here and can independently start a native page-scroll at the same
+     time enableMarqueeDrag's pointermove is seeking the animation — two
+     systems moving things at once, which is what made manual swipe feel
+     broken specifically on Continents rows on both Android and iPhone.
+     pan-y keeps vertical page scroll fully native while reserving
+     horizontal panning for the JS drag. */
+  touch-action: pan-y;
   /* Grab cursor lives in the shared .cards-grid/.continent-marquee-wrapper
      rule near the top of this file — dragging came back in RC-18. */
   /* Explicit height (280px card + 32px padding, box-sizing:border-box means
@@ -6204,6 +6216,9 @@ body {
      .marquee-inner RC-5 FIX — see that comment near the top of this file.
      262px = 230px card + this wrapper's 32px vertical padding. */
   .continent-marquee-wrapper {
+    /* RC-29 FIX: same as the base rule above — mirrors the Global Safari
+       .cards-grid mobile touch-action override (RC-25). */
+    touch-action: pan-y !important;
     height: 262px !important;
   }
 
