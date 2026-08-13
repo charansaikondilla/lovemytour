@@ -46,6 +46,71 @@ function sendEnquiryToWhatsApp(heading, fields) {
   link.remove();
 }
 
+/* ============================================================================
+   GOOGLE SHEETS LEAD LOGGING
+   Fire-and-forget copy of the same enquiry/contact data into a Google Sheet
+   (via a Google Apps Script web app — see google-apps-script/Code.gs and
+   google-apps-script/SETUP.md), with an email notification sent from the
+   script. This is entirely ADDITIVE to the WhatsApp flow above: it never
+   calls preventDefault, never blocks or delays the WhatsApp redirect, and
+   never surfaces a success/failure state to the visitor, so a problem here
+   can never break the one channel that already works.
+   ========================================================================== */
+// Paste the deployed Apps Script "Web app URL" here (ends in /exec) — see
+// google-apps-script/SETUP.md step 7. Left as a placeholder, sendToGoogleSheets
+// is a safe no-op below, so the site behaves exactly as before until this is set.
+const SHEETS_WEBAPP_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+
+/**
+ * Best-effort POST of `data` to the Apps Script web app. `formType` selects
+ * which sheet tab the row is written to server-side ('enquire' or 'contact').
+ *
+ * Content-Type is deliberately 'text/plain', not 'application/json': Apps
+ * Script web apps only implement doGet/doPost, not doOptions, so a JSON
+ * Content-Type would make the browser send a CORS preflight OPTIONS request
+ * first, which Apps Script has no handler for and would fail. text/plain
+ * keeps this a CORS "simple request" (no preflight), and the JSON body is
+ * still parsed correctly server-side via JSON.parse(e.postData.contents).
+ *
+ * mode: 'no-cors' is required because Apps Script never returns an
+ * Access-Control-Allow-Origin header — without it the browser would block
+ * the response outright. The trade-off is an opaque response we can't read,
+ * which is fine: this function never reports success/failure to the caller.
+ */
+function sendToGoogleSheets(formType, data) {
+  if (!SHEETS_WEBAPP_URL || SHEETS_WEBAPP_URL.indexOf('PASTE_YOUR_') === 0) return;
+  try {
+    fetch(SHEETS_WEBAPP_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        formType,
+        ...data,
+        pageUrl: window.location.href
+      })
+    }).catch(() => {});
+  } catch (err) {
+    // Never let a logging failure surface anywhere near the user.
+  }
+}
+
+/**
+ * Labels which on-page trigger opened the shared enquiry modal, purely from
+ * context already available on the clicked element — no new form field.
+ * Every .open-enquiry-btn sitewide funnels into the same #enquiryForm, so
+ * this is the only way to tell them apart in the Sheet's Source column.
+ */
+function classifyEnquirySource(trigger) {
+  if (trigger.closest('.nav-cta')) return 'Navbar — Enquire Now';
+  if (trigger.closest('.mobile-hero-book-btn')) return 'Hero — Book Now';
+  if (trigger.closest('.plan-btn')) {
+    return 'Pricing Section — ' + (trigger.getAttribute('data-package') || 'Plan');
+  }
+  if (trigger.closest('.cyan-book-btn')) return 'Package Detail Page — Book Now';
+  return 'Website — General Enquiry';
+}
+
 /** Small non-blocking confirmation — replaces the old blocking alert() calls. */
 let enquiryToastTimer = null;
 function showEnquiryToast(message) {
@@ -919,12 +984,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const enquiryModal = document.getElementById('enquiryModal');
   const closeModalBtn = document.getElementById('closeModalBtn');
   const enquiryPackageInput = document.getElementById('enquiry-package');
+  // Set alongside enquiryPackageInput whenever a trigger opens the modal, so
+  // the submit handler below can log which on-page button this enquiry came
+  // from (see classifyEnquirySource) without adding a visible form field.
+  let currentEnquirySource = 'Website — General Enquiry';
 
   document.addEventListener('click', (e) => {
     const trigger = e.target.closest('.open-enquiry-btn');
     if (trigger) {
       const pkgName = trigger.getAttribute('data-package') || trigger.getAttribute('data-destination') || 'General Holiday Package';
       if (enquiryPackageInput) enquiryPackageInput.value = pkgName;
+      currentEnquirySource = classifyEnquirySource(trigger);
       if (enquiryModal) enquiryModal.classList.add('active');
     }
 
@@ -991,13 +1061,31 @@ document.addEventListener('DOMContentLoaded', () => {
     enquiryForm.addEventListener('submit', (e) => {
       e.preventDefault();
 
+      const name = fieldValue('enquiry-name');
+      const phone = fieldValue('enquiry-phone');
+      const email = fieldValue('enquiry-email');
+      const pkg = fieldValue('enquiry-package');
+      const message = fieldValue('enquiry-message');
+
       sendEnquiryToWhatsApp('NEW BOOKING ENQUIRY — Love My Tour', [
-        ['Name', fieldValue('enquiry-name')],
-        ['Phone', fieldValue('enquiry-phone')],
-        ['Email', fieldValue('enquiry-email')],
-        ['Destination / Package', fieldValue('enquiry-package')],
-        ['Travel Dates / Requirements', fieldValue('enquiry-message')]
+        ['Name', name],
+        ['Phone', phone],
+        ['Email', email],
+        ['Destination / Package', pkg],
+        ['Travel Dates / Requirements', message]
       ]);
+
+      // Best-effort copy into Google Sheets — see the GOOGLE SHEETS LEAD
+      // LOGGING block near the top of this file. Never blocks or affects
+      // the WhatsApp flow above.
+      sendToGoogleSheets('enquire', {
+        source: currentEnquirySource,
+        name,
+        phone,
+        email,
+        package: pkg,
+        message
+      });
 
       showEnquiryToast('Opening WhatsApp with your booking details… just press send.');
       if (enquiryModal) enquiryModal.classList.remove('active');
@@ -1031,12 +1119,27 @@ document.addEventListener('DOMContentLoaded', () => {
     contactPageForm.addEventListener('submit', (e) => {
       e.preventDefault();
 
+      const name = fieldValue('contact-name');
+      const phone = fieldValue('contact-phone');
+      const destination = fieldValue('contact-destination');
+      const message = fieldValue('contact-msg');
+
       sendEnquiryToWhatsApp('NEW CONTACT ENQUIRY — Love My Tour', [
-        ['Name', fieldValue('contact-name')],
-        ['Phone', fieldValue('contact-phone')],
-        ['Preferred Destination', fieldValue('contact-destination')],
-        ['Message / Travel Details', fieldValue('contact-msg')]
+        ['Name', name],
+        ['Phone', phone],
+        ['Preferred Destination', destination],
+        ['Message / Travel Details', message]
       ]);
+
+      // Best-effort copy into Google Sheets — same pattern as the enquiry
+      // modal above; never blocks or affects the WhatsApp flow.
+      sendToGoogleSheets('contact', {
+        source: 'Contact Page',
+        name,
+        phone,
+        destination,
+        message
+      });
 
       showEnquiryToast('Opening WhatsApp with your message… just press send.');
       contactPageForm.reset();
