@@ -59,7 +59,7 @@ function sendEnquiryToWhatsApp(heading, fields) {
 // Paste the deployed Apps Script "Web app URL" here (ends in /exec) — see
 // google-apps-script/SETUP.md step 7. Left as a placeholder, sendToGoogleSheets
 // is a safe no-op below, so the site behaves exactly as before until this is set.
-const SHEETS_WEBAPP_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+const SHEETS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbyWCwbzX8-49ocuLPNONLapZNivb6fU5vUewliuKh2YULerkOE7_5CZCgUo-ltU0Qv9/exec';
 
 /**
  * Best-effort POST of `data` to the Apps Script web app. `formType` selects
@@ -89,7 +89,7 @@ function sendToGoogleSheets(formType, data) {
         ...data,
         pageUrl: window.location.href
       })
-    }).catch(() => {});
+    }).catch(() => { });
   } catch (err) {
     // Never let a logging failure surface anywhere near the user.
   }
@@ -496,7 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function handleRoute() {
     const hash = window.location.hash || '#home';
-    
+
     // Hide all views first
     Object.values(pageViews).forEach(view => {
       if (view) view.classList.remove('active');
@@ -1101,12 +1101,31 @@ document.addEventListener('DOMContentLoaded', () => {
     heroQuoteForm.addEventListener('submit', (e) => {
       e.preventDefault();
 
+      const name = fieldValue('quote-name');
+      const phone = fieldValue('quote-phone');
+      const email = fieldValue('quote-email');
+      const destination = fieldValue('quote-destination');
+
       sendEnquiryToWhatsApp('NEW QUOTE REQUEST — Love My Tour', [
-        ['Name', fieldValue('quote-name')],
-        ['Phone', fieldValue('quote-phone')],
-        ['Email', fieldValue('quote-email')],
-        ['Destination', fieldValue('quote-destination')]
+        ['Name', name],
+        ['Phone', phone],
+        ['Email', email],
+        ['Destination', destination]
       ]);
+
+      // Best-effort copy into Google Sheets — routed into the same
+      // "Enquire & Book Now" tab as the modal above (the deployed Apps
+      // Script only recognises formType 'enquire'/'contact'; this form's
+      // fields fit that tab's columns exactly), with its own Source label
+      // so it's still clearly distinguishable in the sheet.
+      sendToGoogleSheets('enquire', {
+        source: 'Hero — Get Quote Now',
+        name,
+        phone,
+        email,
+        package: destination,
+        message: ''
+      });
 
       showEnquiryToast('Opening WhatsApp with your quote request… just press send.');
       heroQuoteForm.reset();
@@ -1325,24 +1344,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // DESKTOP 3D COVERFLOW SLOTS (Expanded Non-Overlapping Spacing Matching Image 2)
     const DESKTOP_SLOTS = [
-      { tx: -820, tz:  100, rotY:  40, scale: 1.05, opacity: 0, z: 1 },
-      { tx: -640, tz:   60, rotY:  28, scale: 1.15, opacity: 1, z: 10 },
-      { tx: -385, tz:  -30, rotY:  16, scale: 0.95, opacity: 1, z: 7 },
-      { tx: -145, tz:  -80, rotY:   6, scale: 0.82, opacity: 1, z: 5 },
-      { tx:  145, tz:  -80, rotY:  -6, scale: 0.82, opacity: 1, z: 5 },
-      { tx:  385, tz:  -30, rotY: -16, scale: 0.95, opacity: 1, z: 7 },
-      { tx:  640, tz:   60, rotY: -28, scale: 1.15, opacity: 1, z: 10 },
-      { tx:  820, tz:  100, rotY: -40, scale: 1.05, opacity: 0, z: 1 },
+      { tx: -820, tz: 100, rotY: 40, scale: 1.05, opacity: 0, z: 1 },
+      { tx: -640, tz: 60, rotY: 28, scale: 1.15, opacity: 1, z: 10 },
+      { tx: -385, tz: -30, rotY: 16, scale: 0.95, opacity: 1, z: 7 },
+      { tx: -145, tz: -80, rotY: 6, scale: 0.82, opacity: 1, z: 5 },
+      { tx: 145, tz: -80, rotY: -6, scale: 0.82, opacity: 1, z: 5 },
+      { tx: 385, tz: -30, rotY: -16, scale: 0.95, opacity: 1, z: 7 },
+      { tx: 640, tz: 60, rotY: -28, scale: 1.15, opacity: 1, z: 10 },
+      { tx: 820, tz: 100, rotY: -40, scale: 1.05, opacity: 0, z: 1 },
     ];
     const DESKTOP_POS_MAP = [-4, -3, -2, -1, 1, 2, 3, 4];
 
     // MOBILE 3D CENTER-MAJOR SLOTS (Matching Reference Image 2)
     const MOBILE_SLOTS = [
-      { tx: -250, tz: -60, rotY:  24, scale: 0.72, opacity: 0, z: 1 },
-      { tx: -145, tz: -20, rotY:  14, scale: 0.84, opacity: 0.85, z: 6 },
-      { tx:    0, tz:  40, rotY:   0, scale: 1.06, opacity: 1, z: 10 },
-      { tx:  145, tz: -20, rotY: -14, scale: 0.84, opacity: 0.85, z: 6 },
-      { tx:  250, tz: -60, rotY: -24, scale: 0.72, opacity: 0, z: 1 },
+      { tx: -250, tz: -60, rotY: 24, scale: 0.72, opacity: 0, z: 1 },
+      { tx: -145, tz: -20, rotY: 14, scale: 0.84, opacity: 0.85, z: 6 },
+      { tx: 0, tz: 40, rotY: 0, scale: 1.06, opacity: 1, z: 10 },
+      { tx: 145, tz: -20, rotY: -14, scale: 0.84, opacity: 0.85, z: 6 },
+      { tx: 250, tz: -60, rotY: -24, scale: 0.72, opacity: 0, z: 1 },
     ];
     const MOBILE_POS_MAP = [-2, -1, 0, 1, 2];
 
@@ -1422,22 +1441,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
           if (popIn) {
             card.style.transition = 'none';
-            card.style.transform  = `translate(-50%, -50%) translate3d(${slotCfg.tx}px, 0, -300px) rotateY(${slotCfg.rotY * 1.5}deg) scale(0.4)`;
-            card.style.opacity    = '0';
-            card.style.zIndex     = slotCfg.z;
+            card.style.transform = `translate(-50%, -50%) translate3d(${slotCfg.tx}px, 0, -300px) rotateY(${slotCfg.rotY * 1.5}deg) scale(0.4)`;
+            card.style.opacity = '0';
+            card.style.zIndex = slotCfg.z;
             card.style.pointerEvents = slotCfg.opacity === 0 ? 'none' : 'auto';
 
             const delay = slot * 55;
             setTimeout(() => {
               card.style.transition = 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.6s ease';
               card.style.transform = `translate(-50%, -50%) translate3d(${slotCfg.tx}px, 0, ${slotCfg.tz}px) rotateY(${slotCfg.rotY}deg) scale(${slotCfg.scale})`;
-              card.style.opacity   = slotCfg.opacity;
+              card.style.opacity = slotCfg.opacity;
             }, delay);
           } else {
             card.style.transition = 'none';
             card.style.transform = `translate(-50%, -50%) translate3d(${slotCfg.tx}px, 0, ${slotCfg.tz}px) rotateY(${slotCfg.rotY}deg) scale(${slotCfg.scale})`;
-            card.style.opacity   = slotCfg.opacity;
-            card.style.zIndex    = slotCfg.z;
+            card.style.opacity = slotCfg.opacity;
+            card.style.zIndex = slotCfg.z;
             card.style.pointerEvents = slotCfg.opacity === 0 ? 'none' : 'auto';
             void card.offsetWidth;
             card.style.transition = 'transform 0.45s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.45s ease';
@@ -1445,8 +1464,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           card.style.transition = 'transform 0.45s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.45s ease';
           card.style.transform = `translate(-50%, -50%) translate3d(${slotCfg.tx}px, 0, ${slotCfg.tz}px) rotateY(${slotCfg.rotY}deg) scale(${slotCfg.scale})`;
-          card.style.opacity   = slotCfg.opacity;
-          card.style.zIndex    = slotCfg.z;
+          card.style.opacity = slotCfg.opacity;
+          card.style.zIndex = slotCfg.z;
           card.style.pointerEvents = slotCfg.opacity === 0 ? 'none' : 'auto';
         }
 
