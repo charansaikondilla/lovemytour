@@ -15,6 +15,20 @@ function fieldValue(id) {
 }
 
 /**
+ * Escapes a value for safe insertion into innerHTML. Used specifically for
+ * Careers listing data (see renderCareersFromSheet), which — unlike the
+ * rest of this file's data (packagesData.js, only editable via a code
+ * change) — comes from a Google Sheet reachable through the passcode-
+ * protected admin page, so it's treated as untrusted input rather than
+ * developer-controlled content.
+ */
+function escapeHtml(value) {
+  const div = document.createElement('div');
+  div.textContent = value === null || value === undefined ? '' : String(value);
+  return div.innerHTML;
+}
+
+/**
  * Builds a structured WhatsApp message and opens the chat.
  * `fields` is an array of [label, value] pairs; empty values are skipped so an
  * optional field left blank never shows up as a dangling label.
@@ -534,6 +548,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // #careers/apply jumps straight to the application form.
     else if (hash === '#careers' || hash.startsWith('#careers/')) {
       if (pageViews.careers) pageViews.careers.classList.add('active');
+      renderCareersFromSheet();
 
       if (hash === '#careers/apply') {
         setTimeout(() => {
@@ -1165,7 +1180,74 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 6.4 CAREERS PAGE — "Apply Now" on a job card preselects that role in the
+  // 6.4 CAREERS PAGE — LIVE LISTINGS FROM GOOGLE SHEETS
+  //     Fetches the Careers tab (via the same Apps Script deployment used
+  //     for lead logging, ?action=careers) and, on success, replaces the
+  //     static fallback cards below with it — so editing the Sheet, or the
+  //     separate admin page at <web app URL>?action=admin, is reflected
+  //     here with no code change or redeploy. Called every time the
+  //     #careers route is entered (see handleRoute), so an edit shows up
+  //     next time a visitor opens the page.
+  //
+  //     "No error" behaviour: if the URL is still a placeholder, the
+  //     fetch fails, or the Sheet has no Active listings yet, this does
+  //     nothing at all — the 6 static <article class="career-job-card">
+  //     cards and the static #career-role <option>s already in the HTML
+  //     are the fallback, and stay exactly as they are. The page can
+  //     never end up blank or broken because of this.
+  function renderCareersFromSheet() {
+    if (!SHEETS_WEBAPP_URL || SHEETS_WEBAPP_URL.indexOf('PASTE_YOUR_') === 0) return;
+
+    const jobsList = document.getElementById('careersJobsList');
+    if (!jobsList) return;
+
+    fetch(SHEETS_WEBAPP_URL + '?action=careers')
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data || data.status !== 'success' || !Array.isArray(data.listings) || !data.listings.length) return;
+
+        jobsList.innerHTML = data.listings.map((job) => {
+          const badgeClass = job.badge && /urgent/i.test(job.badge) ? ' career-job-badge-hot' : '';
+          const badgeHtml = job.badge ? `<span class="career-job-badge${badgeClass}">${escapeHtml(job.badge)}</span>` : '';
+          const metaHtml = [job.location, job.type, job.experience, job.salary]
+            .filter(Boolean)
+            .map((part) => `<span>${escapeHtml(part)}</span>`)
+            .join('');
+          const skillsHtml = (job.skills || []).map((skill) => `<li>${escapeHtml(skill)}</li>`).join('');
+
+          return `
+            <article class="career-job-card">
+              <div class="career-job-main">
+                <div class="career-job-top">
+                  <h3 class="career-job-title">${escapeHtml(job.title)}</h3>
+                  ${badgeHtml}
+                </div>
+                <div class="career-job-meta">${metaHtml}</div>
+                <p class="career-job-desc">${escapeHtml(job.description)}</p>
+                <ul class="career-job-skills">${skillsHtml}</ul>
+              </div>
+              <div class="career-job-action">
+                <button type="button" class="career-apply-btn" data-role="${escapeHtml(job.title)}">Apply Now</button>
+              </div>
+            </article>
+          `;
+        }).join('');
+
+        const roleSelect = document.getElementById('career-role');
+        if (roleSelect) {
+          const optionsHtml = data.listings
+            .map((job) => `<option value="${escapeHtml(job.title)}">${escapeHtml(job.title)}</option>`)
+            .join('');
+          roleSelect.innerHTML = optionsHtml + '<option value="Other / General Application">Other / General Application</option>';
+        }
+      })
+      .catch(() => {
+        // Network hiccup or Apps Script unavailable — the static fallback
+        // cards already in the HTML stay exactly as they are.
+      });
+  }
+
+  // 6.5 CAREERS PAGE — "Apply Now" on a job card preselects that role in the
   //     application form and scrolls down to it.
   const careerRoleSelect = document.getElementById('career-role');
 
@@ -1194,7 +1276,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (nameField) setTimeout(() => nameField.focus({ preventScroll: true }), 600);
   });
 
-  // 6.5 CAREERS APPLICATION FORM → WHATSAPP
+  // 6.6 CAREERS APPLICATION FORM → WHATSAPP
   const careersForm = document.getElementById('careersForm');
   if (careersForm) {
     careersForm.addEventListener('submit', (e) => {

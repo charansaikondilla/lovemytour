@@ -71,6 +71,56 @@ Google requires you to deploy Apps Script through its own web UI.
 5. Repeat with the Contact page form — check for the **"Contact Page"** tab
    and a second notification email.
 
+## 6. Careers page admin (add / edit / delete job listings)
+
+The Careers page now reads its job listings from a **"Careers"** tab in the
+same Sheet, and there's a separate admin page (hosted by this same Apps
+Script deployment — no second URL to manage) for adding, editing, and
+deleting listings without touching the raw Sheet grid.
+
+1. Back in the Apps Script editor (Extensions → Apps Script, same project
+   as above), click the **+** next to "Files" → **HTML**.
+2. Name the new file exactly **`AdminPage`** (Apps Script adds the `.html`
+   extension itself — don't type it).
+3. Delete the placeholder content it inserts, then copy the entire contents
+   of `google-apps-script/AdminPage.html` from this repo and paste it in.
+4. In that same file, find this line near the bottom and replace the
+   placeholder with the **same** web app URL you used in step 4 above:
+   ```js
+   var WEB_APP_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+   ```
+5. Back in `Code.gs` (the main file), find this line and change it to your
+   own secret:
+   ```js
+   var ADMIN_PASSCODE = 'change-this-passcode';
+   ```
+   This passcode is a basic shared-secret check, not full account-based
+   security — anyone with both the admin URL *and* this passcode can edit
+   listings. Keep both private. If that's ever not enough, this would need
+   proper Google account-based access control, which is a bigger change.
+6. Save (Ctrl+S), then redeploy a **new version** exactly as described in
+   "Updating the script later" below (this step is required — a new HTML
+   file and edited passcode don't take effect until you do).
+7. Your admin page is now at `<your web app URL>?action=admin` — e.g.
+   `https://script.google.com/macros/s/AKfycb.../exec?action=admin`.
+   Bookmark it somewhere private (not linked from the site itself).
+
+**Test it:**
+1. Open the admin URL, enter your passcode, click Unlock.
+2. Click **+ Add New Listing**, fill in Job Title and Description at
+   minimum (everything else is optional), click **Save Listing**.
+3. It should appear immediately in the admin page's own list.
+4. Open the live site's Careers page (`#careers`) — your new listing should
+   appear among the job cards. If the site still shows the original 6
+   static listings instead, see "What this does and doesn't do" below.
+5. Back in the admin page, click **Edit** on that listing, change something,
+   save — confirm it updates on the live Careers page too.
+6. Click **Delete**, confirm — it should disappear from both the admin page
+   and, on next visit, the live Careers page.
+7. Set a listing's Status to **Inactive** instead of deleting it — it stays
+   in the admin list (so you can reactivate it later) but disappears from
+   the live site, same as a delete would from a visitor's point of view.
+
 ## Updating the script later
 
 Editing `Code.gs` in this repo and pushing it does **not** update the live
@@ -100,3 +150,11 @@ one.
 - Until step 4 above is completed (the real URL pasted into `script.js`),
   the Sheets logging is a safe no-op — the site behaves exactly as it did
   before this feature existed.
+- The Careers page fetches the Careers tab fresh every time someone opens
+  `#careers` — there's no caching, so an edit made via the admin page (or
+  directly in the Sheet) shows up the next time anyone opens that page. The
+  original 6 job listings stay in `index.html` as a fallback: if the fetch
+  fails, the URL isn't set up yet, or the Careers tab has no Active rows,
+  the page quietly keeps showing those static 6 instead — it can never end
+  up blank. Once you've added at least one Active listing through the admin
+  page, the static 6 stop appearing (replaced by whatever's in the Sheet).

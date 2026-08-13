@@ -1,121 +1,1164 @@
 /**
- * Love My Tour — Website Lead Handler (Google Apps Script)
+ * LOVE MY TOUR — WEBSITE LEAD HANDLER + CAREERS ADMIN
+ * Google Apps Script Web App
  *
- * Receives POST requests from the website's shared "Enquire Now / Book Now"
- * modal and the Contact Page form, logs each submission to its own tab in
- * this Sheet (creating the tab and its header row automatically the first
- * time it's needed), and emails a notification for every submission.
+ * Handles:
+ * 1. Enquire / Book Now form (and Get Quote Now, routed the same way)
+ * 2. Contact Page form
+ * 3. Careers page job listings — read (public) + admin add/edit/delete
+ *    (passcode-protected), so the Careers page can be managed entirely
+ *    from this Sheet or from the separate admin page at
+ *    <this web app URL>?action=admin — no code or redeploy needed to
+ *    add, edit, or delete a job listing.
  *
- * SETUP: see SETUP.md in this same folder for the one-time deployment steps.
- * After changing anything in this file, you must create a NEW deployment
- * version (Deploy → Manage deployments → Edit → New version) — saving the
- * file alone does not update the live web app.
+ * Automatically:
+ * - Creates missing sheets
+ * - Creates headers
+ * - Saves submissions
+ * - Sends email notifications
+ * - Provides GET health check
+ * - Provides test function
+ *
+ * IMPORTANT:
+ * After changing this code:
+ * Deploy → Manage deployments → Edit → New version → Deploy
  */
 
-// Every notification email goes here.
+// ============================================================
+// CONFIGURATION
+// ============================================================
+
 var NOTIFY_EMAIL = 'charansaikondilla@gmail.com';
 
-// One tab per form. Headers are written automatically the first time each
-// tab is created — nothing to set up by hand in the Sheet itself.
 var SHEET_CONFIG = {
   enquire: {
     tabName: 'Enquire & Book Now',
-    headers: ['Timestamp', 'Source', 'Name', 'Phone', 'Email', 'Destination / Package', 'Message', 'Page URL']
+    headers: [
+      'Timestamp',
+      'Source',
+      'Name',
+      'Phone',
+      'Email',
+      'Destination / Package',
+      'Message',
+      'Page URL'
+    ]
   },
+
   contact: {
     tabName: 'Contact Page',
-    headers: ['Timestamp', 'Source', 'Name', 'Phone', 'Destination', 'Message', 'Page URL']
+    headers: [
+      'Timestamp',
+      'Source',
+      'Name',
+      'Phone',
+      'Destination',
+      'Message',
+      'Page URL'
+    ]
   }
 };
 
+// Careers tab — the single source of truth for the website's Careers page.
+// Columns: ID | Title | Badge | Location | Type | Experience | Salary |
+// Description | Skills | Status
+// - ID is a UUID generated on create by this script — never type one in
+//   by hand, and never edit an existing ID.
+// - Skills is one cell, pipe-separated: Skill one|Skill two|Skill three
+// - Status is "Active" or "Inactive" — Inactive rows are hidden from the
+//   live site (a soft hide) without deleting the row.
+var CAREERS_TAB_NAME = 'Careers';
+var CAREERS_HEADERS = ['ID', 'Title', 'Badge', 'Location', 'Type', 'Experience', 'Salary', 'Description', 'Skills', 'Status'];
+
+// Shared secret checked before any Careers admin write (create/update/
+// delete/list-all). This is a basic deterrent, not real authentication —
+// anyone with both the admin URL and this passcode can edit listings.
+// Change this to your own value, then redeploy a new version.
+var ADMIN_PASSCODE = 'change-this-passcode';
+
+
+// ============================================================
+// GET — HEALTH CHECK / PUBLIC CAREERS LIST / ADMIN PAGE
+// ============================================================
+
+function doGet(e) {
+
+  var action = e && e.parameter ? e.parameter.action : '';
+
+  if (action === 'careers') {
+
+    return jsonResponse({
+      status: 'success',
+      listings: getCareersList(true)
+    });
+
+  }
+
+  if (action === 'admin') {
+
+    return HtmlService.createHtmlOutputFromFile('AdminPage')
+      .setTitle('Love My Tour — Careers Admin')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+
+  }
+
+  return jsonResponse({
+    status: 'ok',
+    message: 'Love My Tour form handler is live.',
+    timestamp: new Date().toISOString()
+  });
+
+}
+
+
+// ============================================================
+// POST — WEBSITE FORM RECEIVER + CAREERS ADMIN ACTIONS
+// ============================================================
+
 function doPost(e) {
+
   try {
+
+    // --------------------------------------------------------
+    // Validate request
+    // --------------------------------------------------------
+
     if (!e || !e.postData || !e.postData.contents) {
-      return jsonResponse({ status: 'error', message: 'No data received' });
+
+      return jsonResponse({
+        status: 'error',
+        message: 'No POST data received.'
+      });
+
     }
 
-    var data = JSON.parse(e.postData.contents);
-    var formType = data.formType;
-    var config = SHEET_CONFIG[formType];
 
-    if (!config) {
-      return jsonResponse({ status: 'error', message: 'Unknown formType: ' + formType });
-    }
+    // --------------------------------------------------------
+    // Parse JSON
+    // --------------------------------------------------------
 
-    var timestamp = new Date();
-    appendRow(config, formType, data, timestamp);
+    var data;
 
     try {
-      sendNotificationEmail(formType, data, timestamp);
-    } catch (mailErr) {
-      // A Gmail quota/permission hiccup must never take the sheet write
-      // down with it — the row is already saved by this point.
-      Logger.log('Email notification failed: ' + mailErr);
+
+      data = JSON.parse(e.postData.contents);
+
+    } catch (parseError) {
+
+      Logger.log('JSON parse error: ' + parseError);
+
+      return jsonResponse({
+        status: 'error',
+        message: 'Invalid JSON received.'
+      });
+
     }
 
-    return jsonResponse({ status: 'success' });
-  } catch (err) {
-    Logger.log('doPost failed: ' + err);
-    return jsonResponse({ status: 'error', message: String(err) });
+
+    var formType = String(data.formType || '').trim().toLowerCase();
+
+
+    // --------------------------------------------------------
+    // Careers admin actions — passcode-protected. Handled before the
+    // enquire/contact routing below since these formTypes are not in
+    // SHEET_CONFIG.
+    // --------------------------------------------------------
+
+    if (
+      formType === 'careers_list' ||
+      formType === 'careers_create' ||
+      formType === 'careers_update' ||
+      formType === 'careers_delete'
+    ) {
+
+      if (String(data.passcode || '') !== ADMIN_PASSCODE) {
+
+        return jsonResponse({
+          status: 'error',
+          message: 'Incorrect passcode.'
+        });
+
+      }
+
+      try {
+
+        if (formType === 'careers_list') {
+
+          return jsonResponse({
+            status: 'success',
+            listings: getCareersList(false)
+          });
+
+        }
+
+        var result;
+
+        if (formType === 'careers_create') {
+
+          result = createCareerListing(data);
+
+        } else if (formType === 'careers_update') {
+
+          result = updateCareerListing(data);
+
+        } else {
+
+          result = deleteCareerListing(data);
+
+        }
+
+        return jsonResponse({
+          status: 'success',
+          id: result.id,
+          listings: getCareersList(false)
+        });
+
+      } catch (careersError) {
+
+        Logger.log('Careers admin action failed: ' + careersError);
+
+        return jsonResponse({
+          status: 'error',
+          message: String(careersError)
+        });
+
+      }
+
+    }
+
+
+    // --------------------------------------------------------
+    // Validate form type (enquire / contact)
+    // --------------------------------------------------------
+
+    if (!SHEET_CONFIG[formType]) {
+
+      return jsonResponse({
+        status: 'error',
+        message: 'Invalid formType. Expected "enquire" or "contact".'
+      });
+
+    }
+
+
+    var config = SHEET_CONFIG[formType];
+
+    var timestamp = new Date();
+
+
+    // --------------------------------------------------------
+    // Save submission
+    // --------------------------------------------------------
+
+    appendRow(
+      config,
+      formType,
+      data,
+      timestamp
+    );
+
+
+    // --------------------------------------------------------
+    // Send notification email
+    // --------------------------------------------------------
+
+    try {
+
+      sendNotificationEmail(
+        formType,
+        data,
+        timestamp
+      );
+
+    } catch (mailError) {
+
+      // Do NOT lose the lead if email fails.
+
+      Logger.log(
+        'Email notification failed: ' +
+        mailError
+      );
+
+    }
+
+
+    // --------------------------------------------------------
+    // Success
+    // --------------------------------------------------------
+
+    return jsonResponse({
+
+      status: 'success',
+
+      message: 'Form submitted successfully.',
+
+      formType: formType,
+
+      timestamp: timestamp.toISOString()
+
+    });
+
+
+  } catch (error) {
+
+    Logger.log(
+      'doPost ERROR: ' +
+      error +
+      '\nStack: ' +
+      (error.stack || '')
+    );
+
+    return jsonResponse({
+
+      status: 'error',
+
+      message: 'Server error while processing the form.'
+
+    });
+
   }
+
 }
 
-// Lets you sanity-check the deployment by opening the web app URL directly
-// in a browser — see SETUP.md step 9.
-function doGet(e) {
-  return jsonResponse({ status: 'ok', message: 'Love My Tour form handler is live.' });
-}
+
+// ============================================================
+// SAVE LEAD TO GOOGLE SHEETS
+// ============================================================
 
 function appendRow(config, formType, data, timestamp) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(config.tabName);
+
+  // ----------------------------------------------------------
+  // Prevent simultaneous submissions from conflicting
+  // ----------------------------------------------------------
+
+  var lock = LockService.getScriptLock();
+
+  lock.waitLock(10000);
+
+
+  try {
+
+    // --------------------------------------------------------
+    // Get spreadsheet
+    // --------------------------------------------------------
+
+    var spreadsheet =
+      SpreadsheetApp.getActiveSpreadsheet();
+
+
+    if (!spreadsheet) {
+
+      throw new Error(
+        'No active spreadsheet found. ' +
+        'Make sure this Apps Script project is bound to the Google Sheet.'
+      );
+
+    }
+
+
+    // --------------------------------------------------------
+    // Find or create sheet
+    // --------------------------------------------------------
+
+    var sheet =
+      spreadsheet.getSheetByName(
+        config.tabName
+      );
+
+
+    if (!sheet) {
+
+      sheet =
+        spreadsheet.insertSheet(
+          config.tabName
+        );
+
+    }
+
+
+    // --------------------------------------------------------
+    // Create headers if sheet is empty
+    // --------------------------------------------------------
+
+    if (sheet.getLastRow() === 0) {
+
+      sheet
+        .getRange(
+          1,
+          1,
+          1,
+          config.headers.length
+        )
+        .setValues([
+          config.headers
+        ]);
+
+
+      // Header formatting
+
+      var headerRange =
+        sheet.getRange(
+          1,
+          1,
+          1,
+          config.headers.length
+        );
+
+
+      headerRange.setFontWeight('bold');
+
+      headerRange.setBackground('#0891b2');
+
+      headerRange.setFontColor('#ffffff');
+
+      headerRange.setHorizontalAlignment(
+        'center'
+      );
+
+      sheet.setFrozenRows(1);
+
+    }
+
+
+    // --------------------------------------------------------
+    // Build row
+    // --------------------------------------------------------
+
+    var row;
+
+
+    if (formType === 'enquire') {
+
+      row = [
+
+        timestamp,
+
+        cleanValue(data.source),
+
+        cleanValue(data.name),
+
+        cleanValue(data.phone),
+
+        cleanValue(data.email),
+
+        cleanValue(data.package),
+
+        cleanValue(data.message),
+
+        cleanValue(data.pageUrl)
+
+      ];
+
+    } else {
+
+      row = [
+
+        timestamp,
+
+        cleanValue(data.source),
+
+        cleanValue(data.name),
+
+        cleanValue(data.phone),
+
+        cleanValue(data.destination),
+
+        cleanValue(data.message),
+
+        cleanValue(data.pageUrl)
+
+      ];
+
+    }
+
+
+    // --------------------------------------------------------
+    // Append row
+    // --------------------------------------------------------
+
+    sheet.appendRow(row);
+
+
+    // --------------------------------------------------------
+    // Formatting
+    // --------------------------------------------------------
+
+    try {
+
+      sheet
+        .getRange(
+          2,
+          1,
+          sheet.getLastRow() - 1,
+          config.headers.length
+        )
+        .setVerticalAlignment('top');
+
+      sheet
+        .getRange(
+          2,
+          1,
+          sheet.getLastRow() - 1,
+          1
+        )
+        .setNumberFormat(
+          'dd-mm-yyyy hh:mm:ss'
+        );
+
+
+    } catch (formatError) {
+
+      Logger.log(
+        'Formatting warning: ' +
+        formatError
+      );
+
+    }
+
+
+  } finally {
+
+    lock.releaseLock();
+
+  }
+
+}
+
+
+// ============================================================
+// CAREERS — SHEET HELPERS
+// ============================================================
+
+function getCareersSheet_() {
+
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+
+  var sheet = spreadsheet.getSheetByName(CAREERS_TAB_NAME);
 
   if (!sheet) {
-    sheet = ss.insertSheet(config.tabName);
+
+    sheet = spreadsheet.insertSheet(CAREERS_TAB_NAME);
+
   }
 
   if (sheet.getLastRow() === 0) {
-    sheet.appendRow(config.headers);
-    var headerRange = sheet.getRange(1, 1, 1, config.headers.length);
+
+    sheet.getRange(1, 1, 1, CAREERS_HEADERS.length).setValues([CAREERS_HEADERS]);
+
+    var headerRange = sheet.getRange(1, 1, 1, CAREERS_HEADERS.length);
+
     headerRange.setFontWeight('bold');
     headerRange.setBackground('#0891b2');
     headerRange.setFontColor('#ffffff');
+    headerRange.setHorizontalAlignment('center');
+
     sheet.setFrozenRows(1);
+
   }
 
-  var row = formType === 'enquire'
-    ? [timestamp, data.source || '', data.name || '', data.phone || '', data.email || '', data.package || '', data.message || '', data.pageUrl || '']
-    : [timestamp, data.source || '', data.name || '', data.phone || '', data.destination || '', data.message || '', data.pageUrl || ''];
+  return sheet;
 
-  sheet.appendRow(row);
+}
+
+
+// activeOnly=true is used by the public ?action=careers endpoint the
+// website fetches; activeOnly=false is used by the passcode-gated admin
+// actions, which need to see Inactive listings too.
+function getCareersList(activeOnly) {
+
+  var sheet = getCareersSheet_();
+
+  var lastRow = sheet.getLastRow();
+
+  if (lastRow < 2) {
+
+    return [];
+
+  }
+
+  var values = sheet.getRange(2, 1, lastRow - 1, CAREERS_HEADERS.length).getValues();
+
+  var list = [];
+
+  for (var i = 0; i < values.length; i++) {
+
+    var row = values[i];
+
+    var id = cleanValue(row[0]);
+
+    if (!id) continue; // skip any blank row
+
+    var status = cleanValue(row[9]) || 'Active';
+
+    if (activeOnly && status !== 'Active') continue;
+
+    var skillsRaw = cleanValue(row[8]);
+
+    var skills = skillsRaw
+      ? skillsRaw.split('|').map(function (s) { return s.trim(); }).filter(function (s) { return s; })
+      : [];
+
+    list.push({
+      id: id,
+      title: cleanValue(row[1]),
+      badge: cleanValue(row[2]),
+      location: cleanValue(row[3]),
+      type: cleanValue(row[4]),
+      experience: cleanValue(row[5]),
+      salary: cleanValue(row[6]),
+      description: cleanValue(row[7]),
+      skills: skills,
+      status: status
+    });
+
+  }
+
+  return list;
+
+}
+
+
+function findCareerRow_(sheet, id) {
+
+  var lastRow = sheet.getLastRow();
+
+  if (lastRow < 2) return -1;
+
+  var ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+
+  for (var i = 0; i < ids.length; i++) {
+
+    if (cleanValue(ids[i][0]) === id) {
+
+      return i + 2; // sheet row number: +1 for 0-index, +1 for header row
+
+    }
+
+  }
+
+  return -1;
+
+}
+
+
+function careerRowFromData_(id, data) {
+
+  return [
+    id,
+    cleanValue(data.title),
+    cleanValue(data.badge),
+    cleanValue(data.location),
+    cleanValue(data.type),
+    cleanValue(data.experience),
+    cleanValue(data.salary),
+    cleanValue(data.description),
+    cleanValue(data.skills),
+    cleanValue(data.status) || 'Active'
+  ];
+
+}
+
+
+function createCareerListing(data) {
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
 
   try {
-    sheet.autoResizeColumns(1, config.headers.length);
-  } catch (resizeErr) {
-    // Cosmetic only — never let a column-width failure affect the saved row.
+
+    var sheet = getCareersSheet_();
+
+    var id = Utilities.getUuid();
+
+    sheet.appendRow(careerRowFromData_(id, data));
+
+    return { id: id };
+
+  } finally {
+
+    lock.releaseLock();
+
   }
+
 }
 
-function sendNotificationEmail(formType, data, timestamp) {
-  var formLabel = formType === 'enquire' ? 'Enquiry / Booking' : 'Contact Message';
-  var subject = 'New ' + formLabel + ' — ' + (data.name || 'Unknown') + ' (Love My Tour)';
+
+function updateCareerListing(data) {
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+
+  try {
+
+    var sheet = getCareersSheet_();
+
+    var id = cleanValue(data.id);
+
+    var rowNum = findCareerRow_(sheet, id);
+
+    if (rowNum === -1) {
+
+      throw new Error('Listing not found: ' + id);
+
+    }
+
+    sheet.getRange(rowNum, 1, 1, CAREERS_HEADERS.length)
+      .setValues([careerRowFromData_(id, data)]);
+
+    return { id: id };
+
+  } finally {
+
+    lock.releaseLock();
+
+  }
+
+}
+
+
+function deleteCareerListing(data) {
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+
+  try {
+
+    var sheet = getCareersSheet_();
+
+    var id = cleanValue(data.id);
+
+    var rowNum = findCareerRow_(sheet, id);
+
+    if (rowNum === -1) {
+
+      throw new Error('Listing not found: ' + id);
+
+    }
+
+    sheet.deleteRow(rowNum);
+
+    return { id: id };
+
+  } finally {
+
+    lock.releaseLock();
+
+  }
+
+}
+
+
+// ============================================================
+// EMAIL NOTIFICATION
+// ============================================================
+
+function sendNotificationEmail(
+  formType,
+  data,
+  timestamp
+) {
+
+  var formLabel =
+    formType === 'enquire'
+      ? 'Enquiry / Booking'
+      : 'Contact Message';
+
+
+  var customerName =
+    cleanValue(data.name) ||
+    'Unknown';
+
+
+  var subject =
+    'New ' +
+    formLabel +
+    ' — ' +
+    customerName +
+    ' (Love My Tour)';
+
 
   var lines = [];
-  lines.push('New ' + formLabel + ' received on the Love My Tour website.');
-  lines.push('');
-  lines.push('Time: ' + timestamp);
-  lines.push('Source: ' + (data.source || 'N/A'));
-  lines.push('Name: ' + (data.name || 'N/A'));
-  lines.push('Phone: ' + (data.phone || 'N/A'));
-  if (data.email) lines.push('Email: ' + data.email);
-  if (data.package) lines.push('Destination / Package: ' + data.package);
-  if (data.destination) lines.push('Destination: ' + data.destination);
-  if (data.message) lines.push('Message: ' + data.message);
-  lines.push('Page: ' + (data.pageUrl || 'N/A'));
 
-  MailApp.sendEmail(NOTIFY_EMAIL, subject, lines.join('\n'));
+
+  lines.push(
+    'New ' +
+    formLabel +
+    ' received on the Love My Tour website.'
+  );
+
+  lines.push('');
+
+  lines.push(
+    'Time: ' +
+    timestamp
+  );
+
+  lines.push(
+    'Form Type: ' +
+    formType
+  );
+
+  lines.push(
+    'Source: ' +
+    (cleanValue(data.source) || 'N/A')
+  );
+
+  lines.push(
+    'Name: ' +
+    (cleanValue(data.name) || 'N/A')
+  );
+
+  lines.push(
+    'Phone: ' +
+    (cleanValue(data.phone) || 'N/A')
+  );
+
+
+  if (cleanValue(data.email)) {
+
+    lines.push(
+      'Email: ' +
+      cleanValue(data.email)
+    );
+
+  }
+
+
+  if (cleanValue(data.package)) {
+
+    lines.push(
+      'Destination / Package: ' +
+      cleanValue(data.package)
+    );
+
+  }
+
+
+  if (cleanValue(data.destination)) {
+
+    lines.push(
+      'Destination: ' +
+      cleanValue(data.destination)
+    );
+
+  }
+
+
+  if (cleanValue(data.message)) {
+
+    lines.push(
+      'Message: ' +
+      cleanValue(data.message)
+    );
+
+  }
+
+
+  lines.push(
+    'Page URL: ' +
+    (cleanValue(data.pageUrl) || 'N/A')
+  );
+
+
+  lines.push('');
+
+  lines.push(
+    '----------------------------------------'
+  );
+
+  lines.push(
+    'Love My Tour — Website Lead System'
+  );
+
+
+  MailApp.sendEmail({
+
+    to: NOTIFY_EMAIL,
+
+    subject: subject,
+
+    body: lines.join('\n')
+
+  });
+
 }
 
+
+// ============================================================
+// TEST EMAIL
+// ============================================================
+
+function testEmail() {
+
+  var testData = {
+
+    name: 'Test Customer',
+
+    phone: '+91 9999999999',
+
+    email: 'test@example.com',
+
+    package: 'Test Destination',
+
+    message:
+      'This is a test enquiry from the Love My Tour website lead handler.',
+
+    source: 'TEST',
+
+    pageUrl:
+      'https://lovemytour.com/'
+
+  };
+
+
+  sendNotificationEmail(
+
+    'enquire',
+
+    testData,
+
+    new Date()
+
+  );
+
+
+  Logger.log(
+    'TEST EMAIL SENT TO: ' +
+    NOTIFY_EMAIL
+  );
+
+}
+
+
+// ============================================================
+// TEST FULL SYSTEM
+// ============================================================
+
+function testFullSystem() {
+
+  var testData = {
+
+    formType: 'enquire',
+
+    source: 'TEST',
+
+    name: 'Love My Tour Test',
+
+    phone: '+91 9999999999',
+
+    email: 'test@example.com',
+
+    package: 'Test Package',
+
+    message:
+      'FULL SYSTEM TEST — please ignore this lead.',
+
+    pageUrl:
+      'https://lovemytour.com/test'
+
+  };
+
+
+  var config =
+    SHEET_CONFIG.enquire;
+
+
+  var timestamp =
+    new Date();
+
+
+  // Save test row
+
+  appendRow(
+
+    config,
+
+    'enquire',
+
+    testData,
+
+    timestamp
+
+  );
+
+
+  // Send test email
+
+  sendNotificationEmail(
+
+    'enquire',
+
+    testData,
+
+    timestamp
+
+  );
+
+
+  Logger.log(
+    'FULL SYSTEM TEST COMPLETED.'
+  );
+
+}
+
+
+// ============================================================
+// CREATE ALL SHEETS + HEADERS
+// ============================================================
+
+function setupSheets() {
+
+  var spreadsheet =
+    SpreadsheetApp.getActiveSpreadsheet();
+
+
+  if (!spreadsheet) {
+
+    throw new Error(
+      'No active spreadsheet found.'
+    );
+
+  }
+
+
+  Object.keys(SHEET_CONFIG).forEach(
+    function(formType) {
+
+      var config =
+        SHEET_CONFIG[formType];
+
+
+      var sheet =
+        spreadsheet.getSheetByName(
+          config.tabName
+        );
+
+
+      // Create sheet if missing
+
+      if (!sheet) {
+
+        sheet =
+          spreadsheet.insertSheet(
+            config.tabName
+          );
+
+      }
+
+
+      // Create headers if empty
+
+      if (sheet.getLastRow() === 0) {
+
+        sheet
+          .getRange(
+            1,
+            1,
+            1,
+            config.headers.length
+          )
+          .setValues([
+            config.headers
+          ]);
+
+
+        var headerRange =
+          sheet.getRange(
+            1,
+            1,
+            1,
+            config.headers.length
+          );
+
+
+        headerRange.setFontWeight(
+          'bold'
+        );
+
+        headerRange.setBackground(
+          '#0891b2'
+        );
+
+        headerRange.setFontColor(
+          '#ffffff'
+        );
+
+        headerRange.setHorizontalAlignment(
+          'center'
+        );
+
+        sheet.setFrozenRows(1);
+
+      }
+
+
+      try {
+
+        sheet.autoResizeColumns(
+          1,
+          config.headers.length
+        );
+
+      } catch (resizeError) {
+
+        Logger.log(
+          'Resize warning: ' +
+          resizeError
+        );
+
+      }
+
+    }
+  );
+
+  // Also make sure the Careers tab exists with its headers.
+  getCareersSheet_();
+
+
+  Logger.log(
+    'All Love My Tour sheets and headers are ready.'
+  );
+
+}
+
+
+// ============================================================
+// UTILITY — CLEAN INPUT
+// ============================================================
+
+function cleanValue(value) {
+
+  if (
+    value === null ||
+    value === undefined
+  ) {
+
+    return '';
+
+  }
+
+
+  return String(value)
+    .trim()
+    .substring(0, 5000);
+
+}
+
+
+// ============================================================
+// JSON RESPONSE
+// ============================================================
+
 function jsonResponse(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+
+  return ContentService
+
+    .createTextOutput(
+      JSON.stringify(obj)
+    )
+
+    .setMimeType(
+      ContentService.MimeType.JSON
+    );
+
 }

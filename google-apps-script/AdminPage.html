@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Love My Tour — Careers Admin</title>
+  <style>
+    :root {
+      --primary: #0891b2;
+      --primary-dark: #0e7490;
+      --text-dark: #0f172a;
+      --text-muted: #64748b;
+      --border-light: #e2e8f0;
+      --bg: #f8fafc;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text-dark);
+    }
+
+    .page-wrap {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 28px 20px 80px 20px;
+    }
+
+    .admin-header {
+      margin-bottom: 24px;
+    }
+
+    .admin-header h1 {
+      font-size: 24px;
+      font-weight: 800;
+      margin: 0 0 6px 0;
+    }
+
+    .admin-header p {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin: 0;
+    }
+
+    /* ---------- Passcode gate ---------- */
+    .gate-box {
+      max-width: 360px;
+      margin: 60px auto;
+      background: #ffffff;
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+      text-align: center;
+    }
+
+    .gate-box h2 {
+      font-size: 18px;
+      margin: 0 0 6px 0;
+    }
+
+    .gate-box p {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin: 0 0 18px 0;
+    }
+
+    /* ---------- Shared form controls ---------- */
+    input[type="text"],
+    input[type="password"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 11px 13px;
+      border: 1px solid var(--border-light);
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text-dark);
+      background: #ffffff;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    @media (max-width: 560px) {
+      .field-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 11px 22px;
+      border: none;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: #ffffff;
+      box-shadow: 0 8px 20px rgba(8, 145, 178, 0.28);
+    }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      color: var(--text-dark);
+      border: 1px solid var(--border-light);
+    }
+
+    .btn-danger {
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+
+    .btn-block {
+      width: 100%;
+    }
+
+    /* ---------- Toast ---------- */
+    #toast {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: var(--text-dark);
+      color: #ffffff;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 13.5px;
+      font-weight: 700;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s ease;
+      z-index: 999;
+      max-width: 90%;
+      text-align: center;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    #toast.error {
+      background: #b91c1c;
+    }
+
+    /* ---------- Add / edit form ---------- */
+    .form-card {
+      background: #ffffff;
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      padding: 22px;
+      margin-bottom: 26px;
+      display: none;
+    }
+
+    .form-card.open {
+      display: block;
+    }
+
+    .form-card h3 {
+      margin: 0 0 16px 0;
+      font-size: 16px;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .add-toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .add-toggle-row h2 {
+      font-size: 17px;
+      margin: 0;
+    }
+
+    /* ---------- Listing cards ---------- */
+    .listing-card {
+      background: #ffffff;
+      border: 1px solid var(--border-light);
+      border-left: 4px solid var(--primary);
+      border-radius: 16px;
+      padding: 18px 20px;
+      margin-bottom: 14px;
+    }
+
+    .listing-card.inactive {
+      border-left-color: var(--text-muted);
+      opacity: 0.7;
+    }
+
+    .listing-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .listing-title {
+      font-size: 16px;
+      font-weight: 800;
+      margin: 0;
+    }
+
+    .listing-badges {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 10.5px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    .pill-badge {
+      background: rgba(8, 145, 178, 0.12);
+      color: var(--primary-dark);
+    }
+
+    .pill-status-active {
+      background: rgba(22, 163, 74, 0.12);
+      color: #15803d;
+    }
+
+    .pill-status-inactive {
+      background: rgba(100, 116, 139, 0.14);
+      color: var(--text-muted);
+    }
+
+    .listing-meta {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .listing-desc {
+      font-size: 13.5px;
+      color: #475569;
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+
+    .listing-skills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .skill-chip {
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: #f1f5f9;
+      border: 1px solid var(--border-light);
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #475569;
+    }
+
+    .listing-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .empty-msg {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+      padding: 40px 0;
+    }
+
+    #mainContent {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="toast"></div>
+
+  <div class="page-wrap">
+
+    <div class="admin-header">
+      <h1>Careers Admin</h1>
+      <p>Add, edit, or delete job listings. Changes appear on the live Careers page the next time it's opened.</p>
+    </div>
+
+    <!-- Passcode gate -->
+    <div class="gate-box" id="gateBox">
+      <h2>Enter Passcode</h2>
+      <p>This admin page is protected by a shared passcode.</p>
+      <div class="field">
+        <input type="password" id="passcodeInput" placeholder="Passcode" autocomplete="off" />
+      </div>
+      <button class="btn btn-primary btn-block" id="unlockBtn">Unlock</button>
+    </div>
+
+    <!-- Main admin UI (shown after unlock) -->
+    <div id="mainContent">
+
+      <div class="add-toggle-row">
+        <h2>Current Listings</h2>
+        <button class="btn btn-primary" id="addToggleBtn">+ Add New Listing</button>
+      </div>
+
+      <!-- Add / Edit form -->
+      <div class="form-card" id="formCard">
+        <h3 id="formCardTitle">Add New Listing</h3>
+        <form id="listingForm">
+          <input type="hidden" id="f-id" value="" />
+
+          <div class="field">
+            <label for="f-title">Job Title *</label>
+            <input type="text" id="f-title" placeholder="e.g. Travel Sales Consultant — Outbound Holidays" required />
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="f-badge">Badge (optional)</label>
+              <input type="text" id="f-badge" placeholder="e.g. Urgent, New — leave blank for none" />
+            </div>
+            <div class="field">
+              <label for="f-status">Status</label>
+              <select id="f-status">
+                <option value="Active">Active (visible on site)</option>
+                <option value="Inactive">Inactive (hidden)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="f-location">Location</label>
+              <input type="text" id="f-location" placeholder="e.g. Secunderabad, Hyderabad" />
+            </div>
+            <div class="field">
+              <label for="f-type">Type</label>
+              <input type="text" id="f-type" placeholder="e.g. Full-time" />
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="f-experience">Experience</label>
+              <input type="text" id="f-experience" placeholder="e.g. 1–4 years" />
+            </div>
+            <div class="field">
+              <label for="f-salary">Salary</label>
+              <input type="text" id="f-salary" placeholder="e.g. ₹2.4–4.8 LPA + incentives" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="f-description">Description *</label>
+            <textarea id="f-description" placeholder="What this role does day to day..." required></textarea>
+          </div>
+
+          <div class="field">
+            <label for="f-skills">Skills (comma-separated)</label>
+            <input type="text" id="f-skills" placeholder="e.g. Outbound sales, Itinerary costing, Fluent English" />
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="formSubmitBtn">Save Listing</button>
+            <button type="button" class="btn btn-secondary" id="formCancelBtn">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="listingsContainer">
+        <!-- Rendered by JS -->
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // Paste the SAME deployed Apps Script "Web app URL" used in the
+    // website's script.js (SHEETS_WEBAPP_URL) — ends in /exec.
+    var WEB_APP_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+
+    var passcode = sessionStorage.getItem('lmtAdminPasscode') || '';
+    var listings = [];
+
+    function showToast(message, isError) {
+      var toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = isError ? 'show error' : 'show';
+      setTimeout(function () { toast.className = ''; }, 3200);
+    }
+
+    function callApi(payload) {
+      return fetch(WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      }).then(function (res) { return res.json(); });
+    }
+
+    function escapeHtml(str) {
+      var div = document.createElement('div');
+      div.textContent = str || '';
+      return div.innerHTML;
+    }
+
+    function renderListings() {
+      var container = document.getElementById('listingsContainer');
+
+      if (!listings.length) {
+        container.innerHTML = '<p class="empty-msg">No job listings yet — click "Add New Listing" to create the first one.</p>';
+        return;
+      }
+
+      container.innerHTML = listings.map(function (job) {
+        var statusPillClass = job.status === 'Active' ? 'pill-status-active' : 'pill-status-inactive';
+        var badgeHtml = job.badge ? '<span class="pill pill-badge">' + escapeHtml(job.badge) + '</span>' : '';
+        var metaParts = [job.location, job.type, job.experience, job.salary].filter(function (v) { return v; });
+        var skillsHtml = (job.skills || []).map(function (s) {
+          return '<span class="skill-chip">' + escapeHtml(s) + '</span>';
+        }).join('');
+
+        return (
+          '<div class="listing-card' + (job.status !== 'Active' ? ' inactive' : '') + '" data-id="' + job.id + '">' +
+          '<div class="listing-top">' +
+          '<h3 class="listing-title">' + escapeHtml(job.title) + '</h3>' +
+          '<div class="listing-badges">' + badgeHtml + '<span class="pill ' + statusPillClass + '">' + escapeHtml(job.status) + '</span></div>' +
+          '</div>' +
+          (metaParts.length ? '<div class="listing-meta">' + metaParts.map(escapeHtml).join(' &nbsp;·&nbsp; ') + '</div>' : '') +
+          (job.description ? '<p class="listing-desc">' + escapeHtml(job.description) + '</p>' : '') +
+          (skillsHtml ? '<div class="listing-skills">' + skillsHtml + '</div>' : '') +
+          '<div class="listing-actions">' +
+          '<button class="btn btn-secondary edit-btn" data-id="' + job.id + '">Edit</button>' +
+          '<button class="btn btn-danger delete-btn" data-id="' + job.id + '">Delete</button>' +
+          '</div>' +
+          '</div>'
+        );
+      }).join('');
+
+      container.querySelectorAll('.edit-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () { openEditForm(btn.getAttribute('data-id')); });
+      });
+      container.querySelectorAll('.delete-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () { deleteListing(btn.getAttribute('data-id')); });
+      });
+    }
+
+    function openAddForm() {
+      document.getElementById('listingForm').reset();
+      document.getElementById('f-id').value = '';
+      document.getElementById('formCardTitle').textContent = 'Add New Listing';
+      document.getElementById('formCard').classList.add('open');
+      document.getElementById('formCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function openEditForm(id) {
+      var job = listings.filter(function (j) { return j.id === id; })[0];
+      if (!job) return;
+
+      document.getElementById('f-id').value = job.id;
+      document.getElementById('f-title').value = job.title || '';
+      document.getElementById('f-badge').value = job.badge || '';
+      document.getElementById('f-status').value = job.status || 'Active';
+      document.getElementById('f-location').value = job.location || '';
+      document.getElementById('f-type').value = job.type || '';
+      document.getElementById('f-experience').value = job.experience || '';
+      document.getElementById('f-salary').value = job.salary || '';
+      document.getElementById('f-description').value = job.description || '';
+      document.getElementById('f-skills').value = (job.skills || []).join(', ');
+
+      document.getElementById('formCardTitle').textContent = 'Edit Listing';
+      document.getElementById('formCard').classList.add('open');
+      document.getElementById('formCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function closeForm() {
+      document.getElementById('formCard').classList.remove('open');
+      document.getElementById('listingForm').reset();
+    }
+
+    function deleteListing(id) {
+      var job = listings.filter(function (j) { return j.id === id; })[0];
+      var confirmed = window.confirm('Delete "' + (job ? job.title : 'this listing') + '"? This cannot be undone.');
+      if (!confirmed) return;
+
+      callApi({ formType: 'careers_delete', passcode: passcode, id: id })
+        .then(function (res) {
+          if (res.status === 'success') {
+            listings = res.listings || [];
+            renderListings();
+            showToast('Listing deleted.');
+          } else {
+            showToast(res.message || 'Delete failed.', true);
+          }
+        })
+        .catch(function () { showToast('Network error — could not delete.', true); });
+    }
+
+    function loadListings() {
+      return callApi({ formType: 'careers_list', passcode: passcode })
+        .then(function (res) {
+          if (res.status === 'success') {
+            listings = res.listings || [];
+            renderListings();
+            return true;
+          }
+          showToast(res.message || 'Could not load listings.', true);
+          return false;
+        })
+        .catch(function () {
+          showToast('Network error — could not load listings.', true);
+          return false;
+        });
+    }
+
+    function unlock() {
+      var entered = document.getElementById('passcodeInput').value;
+      if (!entered) return;
+
+      passcode = entered;
+
+      callApi({ formType: 'careers_list', passcode: passcode })
+        .then(function (res) {
+          if (res.status === 'success') {
+            listings = res.listings || [];
+            sessionStorage.setItem('lmtAdminPasscode', passcode);
+            document.getElementById('gateBox').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            renderListings();
+          } else {
+            showToast(res.message || 'Incorrect passcode.', true);
+            passcode = '';
+          }
+        })
+        .catch(function () { showToast('Network error — could not connect.', true); });
+    }
+
+    document.getElementById('unlockBtn').addEventListener('click', unlock);
+    document.getElementById('passcodeInput').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') unlock();
+    });
+
+    document.getElementById('addToggleBtn').addEventListener('click', openAddForm);
+    document.getElementById('formCancelBtn').addEventListener('click', closeForm);
+
+    document.getElementById('listingForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      var id = document.getElementById('f-id').value;
+      var payload = {
+        formType: id ? 'careers_update' : 'careers_create',
+        passcode: passcode,
+        id: id,
+        title: document.getElementById('f-title').value.trim(),
+        badge: document.getElementById('f-badge').value.trim(),
+        status: document.getElementById('f-status').value,
+        location: document.getElementById('f-location').value.trim(),
+        type: document.getElementById('f-type').value.trim(),
+        experience: document.getElementById('f-experience').value.trim(),
+        salary: document.getElementById('f-salary').value.trim(),
+        description: document.getElementById('f-description').value.trim(),
+        skills: document.getElementById('f-skills').value
+          .split(',')
+          .map(function (s) { return s.trim(); })
+          .filter(function (s) { return s; })
+          .join('|')
+      };
+
+      var submitBtn = document.getElementById('formSubmitBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Saving…';
+
+      callApi(payload)
+        .then(function (res) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Save Listing';
+
+          if (res.status === 'success') {
+            listings = res.listings || [];
+            renderListings();
+            closeForm();
+            showToast(id ? 'Listing updated.' : 'Listing added.');
+          } else {
+            showToast(res.message || 'Save failed.', true);
+          }
+        })
+        .catch(function () {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Save Listing';
+          showToast('Network error — could not save.', true);
+        });
+    });
+
+    // If a passcode was already remembered this session, skip the gate.
+    if (passcode) {
+      loadListings().then(function (ok) {
+        if (ok) {
+          document.getElementById('gateBox').style.display = 'none';
+          document.getElementById('mainContent').style.display = 'block';
+        } else {
+          passcode = '';
+          sessionStorage.removeItem('lmtAdminPasscode');
+        }
+      });
+    }
+  </script>
+
+</body>
+
+</html>
