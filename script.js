@@ -1631,7 +1631,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // The markup for every marquee contains the card set TWICE, and the
   // keyframes translate by exactly -50% — one full copy. So one loop covers
-  // scrollWidth / 2.
+  // half the track's real content width.
   function tuneMarqueeSpeed(track) {
     // The shared drift speed lives INSIDE this function on purpose. As a
     // module-level `const` it would be in the temporal dead zone at the
@@ -1643,7 +1643,36 @@ document.addEventListener('DOMContentLoaded', () => {
     // resolves to none and every row silently stops dead. A local const
     // cannot be sequenced wrong.
     const pxPerSecond = 40;
-    const loopWidth = track.scrollWidth / 2;
+    // RC-31 FIX — the real mechanism behind Africa/North America/South
+    // America/Australia going completely blank on real iPhone WebKit.
+    // track.scrollWidth (and track.getBoundingClientRect().width) is
+    // supposed to equal 2x one card-set's real width, since the track is
+    // always built as exactly two equal halves. Verified via a live WebKit
+    // trace with iPhone emulation: individual cards measured correctly
+    // (190px each, ~208px apart, ~1240px of real content across 6 cards on
+    // North America's row) while track.scrollWidth simultaneously reported
+    // 4278px for that same track — more than 3x too large — once the CSS
+    // animation + will-change:transform layer was live. That is a WebKit
+    // sizing quirk on a `width: max-content` flex item under an active
+    // transform animation, not a content problem: the cards themselves were
+    // never wrong. Because --marquee-shift is derived from this number, the
+    // animation tried to travel ~2100px per loop for content that only
+    // spans ~600px one-way — the row slides its real cards completely off
+    // whatever direction it is moving and then travels through a further
+    // ~1500px of empty track before it loops, which is the "blank marquee"
+    // reported for these continents (the short ones are hit hardest because
+    // the gap between real content width and the inflated measurement is a
+    // larger fraction of the loop either way).
+    // Fix: measure the SAME way ensureMarqueeFill's own `measure()` already
+    // does reliably — sum each card's own getBoundingClientRect().width
+    // directly, bypassing the track-level measurement entirely instead of
+    // trying to correct it.
+    const kids = Array.from(track.children);
+    const halfLen = Math.floor(kids.length / 2) || kids.length;
+    const loopWidth = kids.slice(0, halfLen).reduce((sum, el) => {
+      const style = getComputedStyle(el);
+      return sum + el.getBoundingClientRect().width + (parseFloat(style.marginRight) || 0);
+    }, 0);
     if (loopWidth <= 0) return;
     const seconds = Math.max(12, loopWidth / pxPerSecond);
     // Belt-and-braces: never write a non-finite value into the custom
