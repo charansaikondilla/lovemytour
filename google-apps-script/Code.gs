@@ -59,16 +59,25 @@ var SHEET_CONFIG = {
   }
 };
 
-// Careers tab — the single source of truth for the website's Careers page.
+// Careers — the single source of truth for the website's Careers page.
+// Lives in its OWN, separate Google Sheet (not this file's bound
+// spreadsheet, which only holds the lead tabs above) — paste that
+// spreadsheet's ID here. Find it in its URL: the long string between
+// /d/ and /edit, e.g. https://docs.google.com/spreadsheets/d/THIS_PART/edit
+// See SETUP.md section 6 for how to create it.
+var CAREERS_SPREADSHEET_ID = 'PASTE_YOUR_CAREERS_SPREADSHEET_ID_HERE';
+
 // Columns: ID | Title | Badge | Location | Type | Experience | Salary |
-// Description | Skills | Status
+// Description | Skills | Status | Created At | Updated At
 // - ID is a UUID generated on create by this script — never type one in
 //   by hand, and never edit an existing ID.
 // - Skills is one cell, pipe-separated: Skill one|Skill two|Skill three
 // - Status is "Active" or "Inactive" — Inactive rows are hidden from the
 //   live site (a soft hide) without deleting the row.
+// - Created At / Updated At are set automatically — Created At is written
+//   once and never changes; Updated At refreshes on every edit.
 var CAREERS_TAB_NAME = 'Careers';
-var CAREERS_HEADERS = ['ID', 'Title', 'Badge', 'Location', 'Type', 'Experience', 'Salary', 'Description', 'Skills', 'Status'];
+var CAREERS_HEADERS = ['ID', 'Title', 'Badge', 'Location', 'Type', 'Experience', 'Salary', 'Description', 'Skills', 'Status', 'Created At', 'Updated At'];
 
 // Shared secret checked before any Careers admin write (create/update/
 // delete/list-all). This is a basic deterrent, not real authentication —
@@ -531,7 +540,12 @@ function appendRow(config, formType, data, timestamp) {
 
 function getCareersSheet_() {
 
-  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  // Careers lives in its own separate spreadsheet, not this project's
+  // bound one (which only holds the lead tabs) — see CAREERS_SPREADSHEET_ID
+  // above. openById requires the account running this script to have
+  // edit access to that file, which it does since it's the same Google
+  // account that created both spreadsheets.
+  var spreadsheet = SpreadsheetApp.openById(CAREERS_SPREADSHEET_ID);
 
   var sheet = spreadsheet.getSheetByName(CAREERS_TAB_NAME);
 
@@ -608,7 +622,9 @@ function getCareersList(activeOnly) {
       salary: cleanValue(row[6]),
       description: cleanValue(row[7]),
       skills: skills,
-      status: status
+      status: status,
+      createdAt: row[10] ? new Date(row[10]).toISOString() : '',
+      updatedAt: row[11] ? new Date(row[11]).toISOString() : ''
     });
 
   }
@@ -641,7 +657,9 @@ function findCareerRow_(sheet, id) {
 }
 
 
-function careerRowFromData_(id, data) {
+// createdAt/updatedAt are Date objects, set by the caller — never trust
+// the client to supply these correctly, so they never come from `data`.
+function careerRowFromData_(id, data, createdAt, updatedAt) {
 
   return [
     id,
@@ -653,7 +671,9 @@ function careerRowFromData_(id, data) {
     cleanValue(data.salary),
     cleanValue(data.description),
     cleanValue(data.skills),
-    cleanValue(data.status) || 'Active'
+    cleanValue(data.status) || 'Active',
+    createdAt,
+    updatedAt
   ];
 
 }
@@ -670,7 +690,9 @@ function createCareerListing(data) {
 
     var id = Utilities.getUuid();
 
-    sheet.appendRow(careerRowFromData_(id, data));
+    var now = new Date();
+
+    sheet.appendRow(careerRowFromData_(id, data, now, now));
 
     return { id: id };
 
@@ -702,8 +724,15 @@ function updateCareerListing(data) {
 
     }
 
+    // Carry the original Created At forward unchanged — read from the
+    // sheet itself, not from the incoming request, so it can't be lost
+    // or spoofed by a client bug.
+    var existingCreatedAt = sheet.getRange(rowNum, 11, 1, 1).getValue();
+
+    var updatedAt = new Date();
+
     sheet.getRange(rowNum, 1, 1, CAREERS_HEADERS.length)
-      .setValues([careerRowFromData_(id, data)]);
+      .setValues([careerRowFromData_(id, data, existingCreatedAt, updatedAt)]);
 
     return { id: id };
 

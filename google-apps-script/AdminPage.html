@@ -289,6 +289,13 @@
       margin-bottom: 8px;
     }
 
+    .listing-timestamps {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      opacity: 0.85;
+      margin-bottom: 10px;
+    }
+
     .listing-desc {
       font-size: 13.5px;
       color: #475569;
@@ -461,6 +468,15 @@
       return div.innerHTML;
     }
 
+    // job.createdAt / job.updatedAt are ISO strings from Code.gs.
+    function formatTimestamp(iso) {
+      if (!iso) return '';
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) +
+        ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    }
+
     function renderListings() {
       var container = document.getElementById('listingsContainer');
 
@@ -476,6 +492,11 @@
         var skillsHtml = (job.skills || []).map(function (s) {
           return '<span class="skill-chip">' + escapeHtml(s) + '</span>';
         }).join('');
+        var createdLabel = formatTimestamp(job.createdAt);
+        var updatedLabel = formatTimestamp(job.updatedAt);
+        var timestampParts = [];
+        if (createdLabel) timestampParts.push('Added ' + createdLabel);
+        if (updatedLabel && updatedLabel !== createdLabel) timestampParts.push('Updated ' + updatedLabel);
 
         return (
           '<div class="listing-card' + (job.status !== 'Active' ? ' inactive' : '') + '" data-id="' + job.id + '">' +
@@ -484,6 +505,7 @@
           '<div class="listing-badges">' + badgeHtml + '<span class="pill ' + statusPillClass + '">' + escapeHtml(job.status) + '</span></div>' +
           '</div>' +
           (metaParts.length ? '<div class="listing-meta">' + metaParts.map(escapeHtml).join(' &nbsp;·&nbsp; ') + '</div>' : '') +
+          (timestampParts.length ? '<div class="listing-timestamps">' + timestampParts.map(escapeHtml).join(' &nbsp;·&nbsp; ') + '</div>' : '') +
           (job.description ? '<p class="listing-desc">' + escapeHtml(job.description) + '</p>' : '') +
           (skillsHtml ? '<div class="listing-skills">' + skillsHtml + '</div>' : '') +
           '<div class="listing-actions">' +
