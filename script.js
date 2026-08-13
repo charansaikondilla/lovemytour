@@ -75,6 +75,13 @@ function sendEnquiryToWhatsApp(heading, fields) {
 // is a safe no-op below, so the site behaves exactly as before until this is set.
 const SHEETS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbyWCwbzX8-49ocuLPNONLapZNivb6fU5vUewliuKh2YULerkOE7_5CZCgUo-ltU0Qv9/exec';
 
+// Careers listings use their own separate Apps Script web app deployment
+// (see google-apps-script/SETUP.md section 6), so this is intentionally a
+// different URL from SHEETS_WEBAPP_URL above. Verified live: responds
+// correctly to a plain fetch() GET for both the health check and
+// ?action=careers, with no CORS issues.
+const CAREERS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwUNSav4CQaJMg-H2NohOmxW6c8E2zLzAlpKHgTYaaU8-XFBMSJBQPJJyShoD3U7dMI/exec';
+
 /**
  * Best-effort POST of `data` to the Apps Script web app. `formType` selects
  * which sheet tab the row is written to server-side ('enquire' or 'contact').
@@ -1181,13 +1188,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // 6.4 CAREERS PAGE — LIVE LISTINGS FROM GOOGLE SHEETS
-  //     Fetches the Careers tab (via the same Apps Script deployment used
-  //     for lead logging, ?action=careers) and, on success, replaces the
-  //     static fallback cards below with it — so editing the Sheet, or the
-  //     separate admin page at <web app URL>?action=admin, is reflected
-  //     here with no code change or redeploy. Called every time the
-  //     #careers route is entered (see handleRoute), so an edit shows up
-  //     next time a visitor opens the page.
+  //     Fetches the Careers tab (via CAREERS_WEBAPP_URL — its own separate
+  //     Apps Script deployment from the one used for lead logging above,
+  //     ?action=careers) and, on success, replaces the static fallback
+  //     cards below with it — so editing that Sheet, or the separate admin
+  //     page at <careers web app URL>?action=admin, is reflected here with
+  //     no code change or redeploy. Called every time the #careers route
+  //     is entered (see handleRoute), so an edit shows up next time a
+  //     visitor opens the page.
   //
   //     "No error" behaviour: if the URL is still a placeholder, the
   //     fetch fails, or the Sheet has no Active listings yet, this does
@@ -1196,12 +1204,12 @@ document.addEventListener('DOMContentLoaded', () => {
   //     are the fallback, and stay exactly as they are. The page can
   //     never end up blank or broken because of this.
   function renderCareersFromSheet() {
-    if (!SHEETS_WEBAPP_URL || SHEETS_WEBAPP_URL.indexOf('PASTE_YOUR_') === 0) return;
+    if (!CAREERS_WEBAPP_URL || CAREERS_WEBAPP_URL.indexOf('PASTE_YOUR_') === 0) return;
 
     const jobsList = document.getElementById('careersJobsList');
     if (!jobsList) return;
 
-    fetch(SHEETS_WEBAPP_URL + '?action=careers')
+    fetch(CAREERS_WEBAPP_URL + '?action=careers')
       .then((res) => res.json())
       .then((data) => {
         if (!data || data.status !== 'success' || !Array.isArray(data.listings) || !data.listings.length) return;
