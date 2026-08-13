@@ -74,88 +74,98 @@ Google requires you to deploy Apps Script through its own web UI.
 ## 6. Careers page admin (add / edit / delete job listings)
 
 The Careers page reads its job listings from a **"Careers"** tab that lives
-in its **own, separate Google Sheet** — deliberately not the same
-spreadsheet as your Enquire/Contact leads, so job-listing content stays
-independent of customer lead data. There's also a separate admin page
-(hosted by this same Apps Script deployment — no second URL to manage) for
-adding, editing, and deleting listings without touching the raw Sheet grid.
+in its **own, separate Google Sheet** (spreadsheet ID
+`1HfcqOyFuAFJLKH3DlsGEArub_p2qY0EDGVgHdPZmK38`, already wired into
+`Code.gs`) — deliberately not the same spreadsheet as your Enquire/Contact
+leads, so job-listing content stays independent of customer lead data.
+There's also a separate admin page (hosted by this same Apps Script
+deployment — no second URL to manage) for adding, editing, and deleting
+listings without touching the raw Sheet grid.
 
-### 6a. Create the separate Careers spreadsheet
+**The admin passcode lives in that same spreadsheet**, in a tab called
+**"Settings"** — not in the code — so you can change it any time by editing
+a cell, with no code change and no redeploy. It's created automatically,
+seeded with the default passcode **`Lovemytravel`**, the first time the
+admin page (or anything else Careers-related) runs after this setup.
 
-1. Go to [sheets.google.com](https://sheets.google.com) → **Blank
-   spreadsheet** (a second, new one — don't reuse your Leads spreadsheet
-   from step 1).
-2. Rename it to something like **"Love My Tour — Careers"**.
-3. Leave it empty — the script creates the Careers tab and its headers
-   automatically the first time it's needed.
-4. Copy its **Spreadsheet ID** from the browser address bar:
-   `https://docs.google.com/spreadsheets/d/`**`THIS_LONG_ID_STRING`**`/edit`
-   — copy just that long ID string, not the whole URL.
+### 6a. Paste in Code.gs
 
-### 6b. Wire up Code.gs and the admin page
+1. In the Apps Script project bound to your Leads spreadsheet (Careers does
+   **not** need its own separate Apps Script project), select **all**
+   existing code in `Code.gs` and delete it.
+2. Copy the entire contents of `google-apps-script/Code.gs` from this repo
+   and paste it in. The Careers spreadsheet ID and the default passcode are
+   already filled in — nothing to edit in this file for this step.
+3. Save (Ctrl+S).
 
-1. In `Code.gs` (the same Apps Script project bound to your Leads
-   spreadsheet — Careers does **not** need its own Apps Script project),
-   find this line and paste in the ID from step 6a:
-   ```js
-   var CAREERS_SPREADSHEET_ID = 'PASTE_YOUR_CAREERS_SPREADSHEET_ID_HERE';
-   ```
-2. Back in the Apps Script editor, click the **+** next to "Files" → **HTML**.
-3. Name the new file exactly **`AdminPage`** (Apps Script adds the `.html`
-   extension itself — don't type it).
-4. Delete the placeholder content it inserts, then copy the entire contents
-   of `google-apps-script/AdminPage.html` from this repo and paste it in.
-5. In that same file, find this line near the bottom and replace the
-   placeholder with the **same** web app URL you used in step 4 of the
-   lead-logging setup above:
+### 6b. Add the admin page file — **this is the step that gets missed**
+
+If you skip or mistype this step, the admin link will show
+`Exception: No HTML file named AdminPage was found` instead of the
+passcode screen. Follow it exactly:
+
+1. In the Apps Script editor's left sidebar, next to "Files", click **+** →
+   **HTML**.
+2. A box asks for a filename. Type exactly `AdminPage` (no `.html` at the
+   end — Apps Script adds that itself) and press Enter.
+3. A new file opens with placeholder content (`<!DOCTYPE html>...`). Select
+   **all** of it and delete it.
+4. Copy the entire contents of `google-apps-script/AdminPage.html` from
+   this repo and paste it in.
+5. In that pasted content, find this line near the bottom and replace the
+   placeholder with your Careers web app URL (the one ending in `/exec` —
+   the same one you use for `?action=careers`):
    ```js
    var WEB_APP_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
    ```
-6. Back in `Code.gs`, find this line and change it to your own secret:
-   ```js
-   var ADMIN_PASSCODE = 'change-this-passcode';
-   ```
-   This passcode is a basic shared-secret check, not full account-based
-   security — anyone with both the admin URL *and* this passcode can edit
-   listings. Keep both private. If that's ever not enough, this would need
-   proper Google account-based access control, which is a bigger change.
-7. Save (Ctrl+S), then redeploy a **new version** exactly as described in
-   "Updating the script later" below (this step is required — the new
-   spreadsheet ID, new HTML file, and edited passcode don't take effect
-   until you do).
-8. The **first time** anything touches the Careers spreadsheet after this
-   change, Google will likely show a fresh authorization prompt (in
-   addition to the one you already approved during initial setup) — this
-   is expected, not an error. `SpreadsheetApp.openById()` (needed to reach
-   a *different* spreadsheet than the one this script is bound to) requires
-   a broader Sheets permission than the narrower "just my bound
-   spreadsheet" access the script started with. Click through it the same
-   way as before: **Advanced → Go to [project name] (unsafe) → Allow**.
-9. Your admin page is at `<your web app URL>?action=admin` — e.g.
-   `https://script.google.com/macros/s/AKfycb.../exec?action=admin`.
-   Bookmark it somewhere private (not linked from the site itself).
+6. Save (Ctrl+S).
+7. **Redeploy now** — a new file doesn't take effect until you do (see
+   "Updating the script later" below): **Deploy → Manage deployments** →
+   pencil icon → **Version: New version** → **Deploy**.
+8. **Checkpoint — do this immediately, before anything else:** open
+   `<your web app URL>?action=admin` in a browser tab right now. You should
+   see a box labeled "Enter Passcode" with an Unlock button. If you instead
+   see a page saying `Exception: No HTML file named AdminPage was found`,
+   the file wasn't actually named `AdminPage` (check for a typo or stray
+   `.html`) or the redeploy in step 7 didn't happen — fix that and check
+   this URL again before moving on.
+
+### 6c. Unlock it and change the passcode
+
+1. On that passcode screen, type `Lovemytravel` (the seeded default) and
+   click **Unlock**. You should land on the admin listings screen.
+2. To set your **own** passcode instead: open the Careers spreadsheet
+   (`docs.google.com/spreadsheets/d/1HfcqOyFuAFJLKH3DlsGEArub_p2qY0EDGVgHdPZmK38`)
+   → find the **"Settings"** tab along the bottom → there's one row,
+   `Passcode | Lovemytravel` → click the **Value** cell (next to
+   "Passcode") and type your new passcode over it → press Enter.
+3. That's it — no code change, no redeploy. The very next time anyone
+   (including you) tries to unlock the admin page, the *new* value is what
+   gets checked. The old passcode stops working immediately.
 
 **Test it:**
-1. Open the admin URL, enter your passcode, click Unlock.
-2. Click **+ Add New Listing**, fill in Job Title and Description at
-   minimum (everything else is optional), click **Save Listing**.
+1. Open the admin URL, enter the passcode (`Lovemytravel`, or whatever
+   you've since changed it to in the Settings tab), click Unlock.
+2. Click **+ Add New Listing**, fill in a Job Title (everything else is
+   optional — leave blank to skip), click **Save Listing**.
 3. It should appear immediately in the admin page's own list, showing an
    "Added [today's date]" line.
-4. Open the *Careers* spreadsheet from step 6a directly — confirm the
-   "Careers" tab now exists there with your new row, and that it's a
-   completely separate file from your Leads spreadsheet.
+4. Open the Careers spreadsheet directly — confirm the "Careers" tab now
+   has your new row.
 5. Open the live site's Careers page (`#careers`) — your new listing should
-   appear among the job cards. If the site still shows the original 6
-   static listings instead, see "What this does and doesn't do" below.
-6. Back in the admin page, click **Edit** on that listing, change something,
-   save — confirm it updates on the live Careers page, and that the card
-   now shows both an "Added ..." and an "Updated ..." line with the
-   "Updated" timestamp being the more recent one.
+   appear, and the "N Positions Open" heading should match the real count.
+6. Back in the admin page, click **Edit** on that listing, change
+   something, save — confirm it updates on the live Careers page, and the
+   card now shows both "Added ..." and "Updated ..." lines.
 7. Click **Delete**, confirm — it should disappear from both the admin page
    and, on next visit, the live Careers page.
 8. Set a listing's Status to **Inactive** instead of deleting it — it stays
    in the admin list (so you can reactivate it later) but disappears from
    the live site, same as a delete would from a visitor's point of view.
+9. **Passcode test:** in the Settings tab, change the Value cell to
+   something new, save. Immediately try unlocking the admin page with the
+   *old* passcode — it should now be rejected. Unlock with the new one —
+   it should work. No redeploy needed for either.
 
 ## Updating the script later
 
@@ -202,3 +212,10 @@ one.
   job listing was added or last changed. These two columns are set by the
   script itself; nothing needs to be typed into them by hand, and editing
   them directly in the spreadsheet isn't necessary or recommended.
+- The admin passcode is read fresh from the Settings tab on every single
+  admin action — there is no caching layer anywhere in this path. Changing
+  the Value cell next to "Passcode" takes effect immediately, with no code
+  change and no redeploy. This is a basic shared-secret check, not full
+  account-based security — anyone with both the admin URL *and* the current
+  passcode can edit listings, so keep the admin URL out of anything public
+  and treat the passcode the way you'd treat a shared Wi-Fi password.

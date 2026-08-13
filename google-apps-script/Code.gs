@@ -61,11 +61,8 @@ var SHEET_CONFIG = {
 
 // Careers — the single source of truth for the website's Careers page.
 // Lives in its OWN, separate Google Sheet (not this file's bound
-// spreadsheet, which only holds the lead tabs above) — paste that
-// spreadsheet's ID here. Find it in its URL: the long string between
-// /d/ and /edit, e.g. https://docs.google.com/spreadsheets/d/THIS_PART/edit
-// See SETUP.md section 6 for how to create it.
-var CAREERS_SPREADSHEET_ID = 'PASTE_YOUR_CAREERS_SPREADSHEET_ID_HERE';
+// spreadsheet, which only holds the lead tabs above).
+var CAREERS_SPREADSHEET_ID = '1HfcqOyFuAFJLKH3DlsGEArub_p2qY0EDGVgHdPZmK38';
 
 // Columns: ID | Title | Badge | Location | Type | Experience | Salary |
 // Description | Skills | Status | Created At | Updated At
@@ -79,11 +76,17 @@ var CAREERS_SPREADSHEET_ID = 'PASTE_YOUR_CAREERS_SPREADSHEET_ID_HERE';
 var CAREERS_TAB_NAME = 'Careers';
 var CAREERS_HEADERS = ['ID', 'Title', 'Badge', 'Location', 'Type', 'Experience', 'Salary', 'Description', 'Skills', 'Status', 'Created At', 'Updated At'];
 
-// Shared secret checked before any Careers admin write (create/update/
-// delete/list-all). This is a basic deterrent, not real authentication —
-// anyone with both the admin URL and this passcode can edit listings.
-// Change this to your own value, then redeploy a new version.
-var ADMIN_PASSCODE = 'change-this-passcode';
+// Admin passcode — lives in the "Settings" tab of the SAME Careers
+// spreadsheet above, not hardcoded here, so it can be changed at any time
+// by editing a cell in Sheets, with NO code change and no redeploy. See
+// getAdminPasscode_() below, which reads it fresh on every single request.
+// DEFAULT_ADMIN_PASSCODE is only ever used to seed that tab's first row the
+// very first time it's created, and as a fallback if that row is ever
+// deleted or emptied by mistake — change your real passcode in the Sheet,
+// not by editing this line.
+var SETTINGS_TAB_NAME = 'Settings';
+var SETTINGS_HEADERS = ['Key', 'Value'];
+var DEFAULT_ADMIN_PASSCODE = 'Lovemytravel';
 
 
 // ============================================================
@@ -180,7 +183,7 @@ function doPost(e) {
       formType === 'careers_delete'
     ) {
 
-      if (String(data.passcode || '') !== ADMIN_PASSCODE) {
+      if (String(data.passcode || '') !== getAdminPasscode_()) {
 
         return jsonResponse({
           status: 'error',
@@ -571,6 +574,84 @@ function getCareersSheet_() {
   }
 
   return sheet;
+
+}
+
+
+// ============================================================
+// SETTINGS — ADMIN PASSCODE STORED IN THE SHEET, NOT IN CODE
+// ============================================================
+//
+// Lives as a "Settings" tab in the same Careers spreadsheet as the
+// Careers tab above (same openById(CAREERS_SPREADSHEET_ID) — no new
+// spreadsheet, no new permission). A simple Key | Value table so it can
+// grow to hold more than just the passcode later if ever needed.
+
+function getSettingsSheet_() {
+
+  var spreadsheet = SpreadsheetApp.openById(CAREERS_SPREADSHEET_ID);
+
+  var sheet = spreadsheet.getSheetByName(SETTINGS_TAB_NAME);
+
+  if (!sheet) {
+
+    sheet = spreadsheet.insertSheet(SETTINGS_TAB_NAME);
+
+  }
+
+  if (sheet.getLastRow() === 0) {
+
+    sheet.getRange(1, 1, 1, SETTINGS_HEADERS.length).setValues([SETTINGS_HEADERS]);
+
+    var headerRange = sheet.getRange(1, 1, 1, SETTINGS_HEADERS.length);
+
+    headerRange.setFontWeight('bold');
+    headerRange.setBackground('#0891b2');
+    headerRange.setFontColor('#ffffff');
+    headerRange.setHorizontalAlignment('center');
+
+    sheet.setFrozenRows(1);
+
+    // Seed the passcode row so there's something to find and edit
+    // immediately — this only ever happens once, the first time this tab
+    // is created.
+    sheet.appendRow(['Passcode', DEFAULT_ADMIN_PASSCODE]);
+
+  }
+
+  return sheet;
+
+}
+
+
+// Reads the CURRENT passcode fresh from the Settings tab on every call —
+// no caching anywhere, so a passcode changed directly in the Sheet takes
+// effect on the very next request, with no code change and no redeploy.
+function getAdminPasscode_() {
+
+  var sheet = getSettingsSheet_();
+
+  var lastRow = sheet.getLastRow();
+
+  if (lastRow < 2) return DEFAULT_ADMIN_PASSCODE;
+
+  var rows = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
+
+  for (var i = 0; i < rows.length; i++) {
+
+    if (cleanValue(rows[i][0]) === 'Passcode') {
+
+      var value = cleanValue(rows[i][1]);
+
+      return value || DEFAULT_ADMIN_PASSCODE;
+
+    }
+
+  }
+
+  // No "Passcode" row found (e.g. it was deleted by mistake) — fall back
+  // rather than lock the admin out entirely.
+  return DEFAULT_ADMIN_PASSCODE;
 
 }
 
@@ -1140,8 +1221,10 @@ function setupSheets() {
     }
   );
 
-  // Also make sure the Careers tab exists with its headers.
+  // Also make sure the Careers tab exists with its headers, and the
+  // Settings tab exists with its passcode row seeded.
   getCareersSheet_();
+  getSettingsSheet_();
 
 
   Logger.log(
