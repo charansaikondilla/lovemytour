@@ -1459,7 +1459,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isHidden = i >= destList.length;
         cardsHTML += `
           <a href="#category/${dest.id}" class="country-photo-card"${isHidden ? ' aria-hidden="true"' : ''}>
-            <img src="${dest.image}" alt="${dest.name}" class="country-photo-img" decoding="async" />
+            <img src="${dest.image}" alt="${dest.name}" class="country-photo-img" width="240" height="280" decoding="async" />
             <div class="country-photo-gradient"></div>
             <span class="country-card-tag">${dest.tag}</span>
             <div class="country-photo-info">
