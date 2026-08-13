@@ -1,0 +1,21 @@
+{
+  "name": "Love My Tour",
+  "short_name": "Love My Tour",
+  "description": "Love My Tour (Trilochan Travel Solutions) — Outbound & Domestic Travel Packages from Hyderabad.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0891b2",
+  "icons": [
+    {
+      "src": "assets/favicons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/favicons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

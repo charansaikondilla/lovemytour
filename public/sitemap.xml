@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  This site is a client-side, hash-routed single-page app (#continents,
+  #about, #services, #contact, etc. are all the same document — not
+  separate URLs a crawler can discover or rank independently of each
+  other). Listing those hash fragments here as if they were distinct pages
+  would be misleading to search engines, so this sitemap truthfully
+  contains only the one real, crawlable URL. See DOMAIN-AND-SEO-SETUP.md
+  for what it would take to make individual sections independently
+  indexable in the future.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://www.lovemytour.com/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>
