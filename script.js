@@ -1221,7 +1221,12 @@ document.addEventListener('DOMContentLoaded', () => {
             .filter(Boolean)
             .map((part) => `<span>${escapeHtml(part)}</span>`)
             .join('');
+          // Every field below except Title is optional in the admin page —
+          // description/skills/meta only render if actually filled in, so
+          // a skipped field never leaves a blank paragraph or empty list.
+          const descHtml = job.description ? `<p class="career-job-desc">${escapeHtml(job.description)}</p>` : '';
           const skillsHtml = (job.skills || []).map((skill) => `<li>${escapeHtml(skill)}</li>`).join('');
+          const skillsListHtml = skillsHtml ? `<ul class="career-job-skills">${skillsHtml}</ul>` : '';
 
           return `
             <article class="career-job-card">
@@ -1231,8 +1236,8 @@ document.addEventListener('DOMContentLoaded', () => {
                   ${badgeHtml}
                 </div>
                 <div class="career-job-meta">${metaHtml}</div>
-                <p class="career-job-desc">${escapeHtml(job.description)}</p>
-                <ul class="career-job-skills">${skillsHtml}</ul>
+                ${descHtml}
+                ${skillsListHtml}
               </div>
               <div class="career-job-action">
                 <button type="button" class="career-apply-btn" data-role="${escapeHtml(job.title)}">Apply Now</button>
@@ -1248,10 +1253,17 @@ document.addEventListener('DOMContentLoaded', () => {
             .join('');
           roleSelect.innerHTML = optionsHtml + '<option value="Other / General Application">Other / General Application</option>';
         }
+
+        const openCountEl = document.getElementById('careersOpenCount');
+        if (openCountEl) {
+          const n = data.listings.length;
+          openCountEl.textContent = n + (n === 1 ? ' Position Open' : ' Positions Open');
+        }
       })
       .catch(() => {
         // Network hiccup or Apps Script unavailable — the static fallback
-        // cards already in the HTML stay exactly as they are.
+        // cards (and the static "6 Positions Open" heading) already in
+        // the HTML stay exactly as they are.
       });
   }
 
