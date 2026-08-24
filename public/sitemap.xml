@@ -4,10 +4,18 @@
   (#contact, #services, etc. are all the same document — not separate URLs
   a crawler can discover or rank independently of each other), so it's
   listed once, not once per hash fragment. Safari Adventures, Continents,
-  Asia, Europe and About Us additionally exist as real, separate static
-  pages (see /safari-adventures/, /continents/, etc.) specifically so they
-  CAN be indexed and ranked as their own results — each links back into the
-  live interactive site. See DOMAIN-AND-SEO-SETUP.md for more.
+  Asia, Europe, About Us, Services, and the Thailand/Maldives/Malaysia
+  package pages additionally exist as real, separate static pages (see
+  /safari-adventures/, /continents/, /services/, etc.) specifically so
+  they CAN be indexed and ranked as their own results — each links back
+  into the live interactive site. See DOMAIN-AND-SEO-SETUP.md for more.
+
+  /services.html, /Aboutus.html, /thailand-tour-packages.html,
+  /maldives-Tour-Packages.html and /malaysia-tour-packages.html are OLD
+  URLs from a previous, pre-Vite version of this site that Google still
+  has indexed. They aren't listed here (they aren't real pages any more)
+  but each now exists as a client-side redirect stub pointing at its
+  correct modern equivalent above, instead of 404ing.
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
@@ -39,5 +47,25 @@
     <loc>https://www.lovemytour.com/about-us/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.lovemytour.com/services/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.lovemytour.com/thailand-tour-packages/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.lovemytour.com/maldives-tour-packages/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.lovemytour.com/malaysia-tour-packages/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>
 </urlset>
