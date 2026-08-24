@@ -478,8 +478,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function handleNavbarScroll() {
     if (!globalNavbar) return;
-    // Navbar activates (.scrolled state) after initial scroll on mobile/desktop
-    const threshold = window.innerWidth <= 900 ? (window.innerHeight * 0.6) : 20;
+    // Desktop: navbar is permanently in its solid-white "scrolled" look —
+    // .scrolled is forced on and never removed, so nothing about the bar
+    // (background, logo size, tagline size) changes as the page scrolls.
+    if (window.innerWidth > 900) {
+      globalNavbar.classList.add('scrolled');
+      return;
+    }
+    // Mobile keeps the original threshold-based toggle.
+    const threshold = window.innerHeight * 0.6;
     if (window.scrollY > threshold) {
       globalNavbar.classList.add('scrolled');
     } else {

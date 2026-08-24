@@ -1537,6 +1537,33 @@ body {
   margin-bottom: 10px;
 }
 
+.footer-highlight-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.footer-highlight-pill {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #e2f6fb;
+  background: rgba(8, 145, 178, 0.22);
+  border: 1px solid rgba(8, 145, 178, 0.4);
+  border-radius: 20px;
+  padding: 7px 14px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.footer-highlight-pill:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
 .footer-brand-desc {
   font-size: 14px;
   color: #94a3b8;
