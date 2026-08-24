@@ -311,7 +311,15 @@ document.addEventListener('DOMContentLoaded', () => {
       fiji: '🇫🇯', brazil: '🇧🇷', peru: '🇵🇪', argentina: '🇦🇷', colombia: '🇨🇴',
       usa: '🇺🇸', canada: '🇨🇦', mexico: '🇲🇽', 'antarctic-peninsula': '🇦🇶',
       'south-shetland': '🇦🇶', himachal: '🇮🇳', kashmir: '🇮🇳', ladakh: '🇮🇳',
-      'hong-kong': '🇭🇰', goa: '🇮🇳', 'north-america': '🌎', safari: '🦁', heritage: '🏛️'
+      'hong-kong': '🇭🇰', goa: '🇮🇳', 'north-america': '🌎', safari: '🦁', heritage: '🏛️',
+      india: '🇮🇳', nepal: '🇳🇵', bhutan: '🇧🇹', pakistan: '🇵🇰', bangladesh: '🇧🇩',
+      afghanistan: '🇦🇫', philippines: '🇵🇭', myanmar: '🇲🇲', cambodia: '🇰🇭', laos: '🇱🇦',
+      brunei: '🇧🇳', 'timor-leste': '🇹🇱', china: '🇨🇳', 'south-korea': '🇰🇷',
+      'north-korea': '🇰🇵', mongolia: '🇲🇳', kazakhstan: '🇰🇿', uzbekistan: '🇺🇿',
+      turkmenistan: '🇹🇲', kyrgyzstan: '🇰🇬', tajikistan: '🇹🇯', 'saudi-arabia': '🇸🇦',
+      qatar: '🇶🇦', kuwait: '🇰🇼', bahrain: '🇧🇭', oman: '🇴🇲', yemen: '🇾🇪', iraq: '🇮🇶',
+      iran: '🇮🇷', jordan: '🇯🇴', israel: '🇮🇱', lebanon: '🇱🇧', syria: '🇸🇾',
+      cyprus: '🇨🇾', palestine: '🇵🇸'
     };
 
     // Build the searchable index from packagesData.js categories.
