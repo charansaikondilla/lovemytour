@@ -76,20 +76,37 @@ hours already used elsewhere on the site — this is what lets Google (and
 increasingly, AI answer engines) understand *what* the business is,
 directly, instead of having to guess from page text.
 
-**The one thing this can't do, and I didn't pretend it could:** this site
-is a single-page app using hash-based navigation (`#continents`, `#about`,
-`#services`, `#contact`, ...) — every one of those is the *same* HTML
-document; only client-side JavaScript changes what's visible. Google (and
-every other crawler) sees exactly one URL, `https://www.lovemytour.com/`,
-no matter which section a person is looking at. `sitemap.xml` is written to
-tell the truth about that — it lists only that one real URL. If you want
-individual sections (say, the Continents page or a specific destination) to
-show up and rank as their *own* separate results in Google search — not
-just the homepage — that needs the site restructured to use real
-address-bar URLs per page (e.g. `/continents`, `/destinations/bali`) with
-server-side rendering or pre-rendering. That's a genuinely bigger project
-than adding SEO tags, not something this change does, and worth a separate
-conversation if it's something you want.
+**This used to have a hard limitation — it no longer does.** The site was
+originally a hash-routed single-page app (`#continents`, `#about`,
+`#services`, ...), and a hash fragment is never sent to the server, so
+Google could only ever see one URL (`https://www.lovemytour.com/`) no
+matter which section was on screen. Every section collapsed into the same
+search result and none could rank on its own.
+
+That's fixed. The site now uses **real address-bar URLs** — see
+`routes.js`, which is the single source of truth shared by the client-side
+router and the build:
+
+| URL | What it is |
+|-----|-----------|
+| `/about-us/`, `/services/`, `/contact/`, `/careers/` | main sections |
+| `/popular/`, `/popular/<category>/` | popular destinations + the 6 filters |
+| `/continents/`, `/continents/<continent>/` | continents index + all 7 |
+| `/<destination>-tour-packages/` | every destination (87 of them) |
+| `/packages/<package-id>/` | every individual package (117 of them) |
+
+GitHub Pages serves static files only and has no server-side rewriting, so
+`generate-routes.mjs` runs after `vite build` and writes a real
+`index.html` at every one of those ~225 URLs, each carrying the full live
+app plus its own `<title>`, `<meta description>` and `<link rel=canonical>`.
+Every URL therefore returns a genuine HTTP 200 with real content — no
+redirect stub, no hash, nothing for a crawler to skip. `sitemap.xml` is
+generated from the same manifest, so it can't drift out of sync.
+
+Old inbound links still work: `script.js` translates legacy hashes
+(`#about`, `#category/thailand`, `#package/xyz`, ...) to their real path on
+arrival, and `public/*.html` holds redirect stubs for the pre-Vite URLs
+Google still has indexed (`Aboutus.html`, `bali-inner-1.html`, ...).
 
 ## Part 4 — Getting Google to actually notice faster
 

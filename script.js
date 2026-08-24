@@ -1,44 +1,58 @@
 import { destinationsData, continentsData, getPackageById, POPULAR_CATEGORIES, DESTINATION_CATEGORIES } from './packagesData.js';
+import { matchRoute, buildPath } from './routes.js';
 
 /* ============================================================================
-   LEGACY HASH -> REAL PAGE REDIRECT
-   A handful of hash routes (#about, #services, #category/thailand, ...) are
-   what Google's existing sitelinks for this site still point at, from
-   before those sections got a real, separately-indexable static page
-   (see /about-us/, /services/, /thailand-tour-packages/, etc.). A hash
-   fragment is never sent to the server and can never be indexed as its own
-   URL, so landing here from an old sitelink/search result would otherwise
-   render the SPA view at a URL Google can't distinguish from the homepage —
-   exactly the "duplicate content, hash pages don't get indexed" problem.
-   This runs once, at the very top of the module (before the router, before
-   any rendering), and ONLY on a direct/external load that already has one
-   of these hashes — an in-app link click still sets the hash and navigates
-   within the SPA normally, this never fires for that, since by then the
-   page has already loaded past this point. window.location.replace (not
-   .href) is used so the redirect doesn't leave a broken back-button entry.
+   LEGACY HASH -> REAL PATH REDIRECT
+   The site was hash-routed until real paths landed (see routes.js). Old
+   inbound links still exist in the wild — Google's sitelinks, WhatsApp
+   shares, bookmarks — all pointing at #about, #category/thailand,
+   #package/xyz and friends. A hash never reaches the server, so those URLs
+   can't be indexed and now don't match any route either.
+
+   This translates any such hash to its real path once, at module load,
+   before the router runs. It only ever fires on a direct/external load that
+   arrives WITH one of these hashes; ordinary in-app navigation uses
+   pushState and never sets a hash, so this is dormant after boot.
+   location.replace (not .href) keeps the dead URL out of the back stack.
    ========================================================================== */
-(function redirectLegacyHash() {
-  const LEGACY_HASH_REDIRECTS = {
-    '#about': 'about-us/',
-    '#services': 'services/',
-    '#category/thailand': 'thailand-tour-packages/',
-    '#country/thailand': 'thailand-tour-packages/',
-    '#category/maldives': 'maldives-tour-packages/',
-    '#country/maldives': 'maldives-tour-packages/',
-    '#category/malaysia': 'malaysia-tour-packages/',
-    '#country/malaysia': 'malaysia-tour-packages/',
-    '#category/bali': 'bali-tour-packages/',
-    '#country/bali': 'bali-tour-packages/',
-    '#package/tantalizing-thailand': 'thailand-tour-packages/',
-    '#package/mesmerising-maldives-escape': 'maldives-tour-packages/',
-    '#package/fascinating-singapore-malaysia': 'malaysia-tour-packages/',
-    '#package/amazing-bali-holiday': 'bali-tour-packages/'
-  };
-  const target = LEGACY_HASH_REDIRECTS[window.location.hash];
-  if (target) {
-    window.location.replace(target);
-  }
+function legacyHashTarget(hash) {
+  if (!hash || hash.length < 2) return null;
+
+  const raw = hash.slice(1);
+  let target = null;
+
+  if (raw === 'home') target = buildPath('home');
+  else if (raw === 'about') target = buildPath('about');
+  else if (raw === 'services') target = buildPath('services');
+  else if (raw === 'contact') target = buildPath('contact');
+  else if (raw === 'careers') target = buildPath('careers');
+  else if (raw === 'careers/apply') target = buildPath('careers', 'apply');
+  else if (raw === 'popular') target = buildPath('popular');
+  else if (raw.startsWith('popular/')) target = buildPath('popular', raw.slice(8));
+  else if (raw === 'continents') target = buildPath('continents');
+  else if (raw.startsWith('continents/')) target = buildPath('continents', raw.slice(11));
+  else if (raw.startsWith('category/')) target = buildPath('category', raw.slice(9));
+  else if (raw.startsWith('country/')) target = buildPath('category', raw.slice(8));
+  else if (raw.startsWith('package/')) target = buildPath('package', raw.slice(8));
+
+  return target;
+}
+
+// Fires on a cold load that arrives with a legacy hash (an old Google
+// sitelink, a shared WhatsApp link, a bookmark).
+(function redirectLegacyHashOnLoad() {
+  const target = legacyHashTarget(window.location.hash);
+  if (target) window.location.replace(target);
 })();
+
+// ...and again if a legacy hash is applied to the page already open — e.g.
+// pasting /#services into the address bar while sitting on /. That is a
+// same-document change, so the module above never re-runs; without this the
+// hash would simply be ignored and the visitor would stay put.
+window.addEventListener('hashchange', () => {
+  const target = legacyHashTarget(window.location.hash);
+  if (target) window.location.replace(target);
+});
 
 /* ============================================================================
    WHATSAPP ENQUIRY DELIVERY
@@ -413,7 +427,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function goToCountry(entry) {
       closeResults();
       input.value = '';
-      window.location.hash = `#${entry.route}/${entry.id}`;
+      // entry.route is 'category' or 'package' — both map straight through.
+      window.__lmtNavigate(buildPath(entry.route, entry.id));
     }
 
     function renderResults(matches, query) {
@@ -508,7 +523,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const packageId = trigger.getAttribute('data-package-id');
       if (packageId) {
         e.preventDefault();
-        window.location.hash = `#package/${packageId}`;
+        window.__lmtNavigate(buildPath('package', packageId));
       }
     }
   });
@@ -571,12 +586,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const navLinks = document.querySelectorAll('.nav-links .nav-item');
 
+  /**
+   * Navigates to a real path via the History API and renders it.
+   * This is the ONLY way the app should change page — assigning
+   * location.hash no longer routes anything.
+   */
+  function navigateTo(path, { replace = false } = {}) {
+    const target = path || '/';
+    const current = window.location.pathname + window.location.search;
+    if (target !== current) {
+      if (replace) window.history.replaceState({}, '', target);
+      else window.history.pushState({}, '', target);
+    }
+    handleRoute();
+  }
+  // Card/list renderers elsewhere in this file call this.
+  window.__lmtNavigate = navigateTo;
+
   function handleRoute() {
-    const hash = window.location.hash || '#home';
+    const { view, id } = matchRoute(window.location.pathname);
 
     // Hide all views first
-    Object.values(pageViews).forEach(view => {
-      if (view) view.classList.remove('active');
+    Object.values(pageViews).forEach(v => {
+      if (v) v.classList.remove('active');
     });
 
     // Reset navbar active highlights
@@ -586,73 +618,58 @@ document.addEventListener('DOMContentLoaded', () => {
     // A smooth scroll here would fight the fade and flash the middle of the new page.
     window.scrollTo({ top: 0, behavior: 'auto' });
 
-    if (hash === '#home' || hash === '' || hash.startsWith('#packages') || hash.startsWith('#portfolio') || hash.startsWith('#pricing')) {
-      if (pageViews.home) pageViews.home.classList.add('active');
-      const homeLink = document.querySelector('.nav-link-home');
-      if (homeLink) homeLink.classList.add('active');
-      renderHomepagePackages('all');
+    const activate = (key, navSelector) => {
+      if (pageViews[key]) pageViews[key].classList.add('active');
+      if (navSelector) {
+        const link = document.querySelector(navSelector);
+        if (link) link.classList.add('active');
+      }
+    };
+
+    if (view === 'about') {
+      activate('about', '.nav-link-about');
     }
-    else if (hash === '#about') {
-      if (pageViews.about) pageViews.about.classList.add('active');
-      const aboutLink = document.querySelector('.nav-link-about');
-      if (aboutLink) aboutLink.classList.add('active');
+    else if (view === 'services') {
+      activate('services', '.nav-link-services');
     }
-    else if (hash === '#services') {
-      if (pageViews.services) pageViews.services.classList.add('active');
-      const servicesLink = document.querySelector('.nav-link-services');
-      if (servicesLink) servicesLink.classList.add('active');
+    else if (view === 'contact') {
+      activate('contact', '.nav-link-contact');
     }
-    else if (hash === '#contact') {
-      if (pageViews.contact) pageViews.contact.classList.add('active');
-      const contactLink = document.querySelector('.nav-link-contact');
-      if (contactLink) contactLink.classList.add('active');
-    }
-    // Careers is reached from the footer, so there is no navbar link to highlight.
-    // #careers/apply jumps straight to the application form.
-    else if (hash === '#careers' || hash.startsWith('#careers/')) {
-      if (pageViews.careers) pageViews.careers.classList.add('active');
+    // Careers is reached from the footer, so there is no navbar link to
+    // highlight. /careers/apply/ jumps straight to the application form.
+    else if (view === 'careers') {
+      activate('careers');
       renderCareersFromSheet();
 
-      if (hash === '#careers/apply') {
+      if (id === 'apply') {
         setTimeout(() => {
           const form = document.getElementById('careersApplyForm');
           if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 150);
       }
     }
-    else if (hash === '#continents' || hash.startsWith('#continents/')) {
-      if (pageViews.continents) pageViews.continents.classList.add('active');
-      const continentsLink = document.querySelector('.nav-link-packages');
-      if (continentsLink) continentsLink.classList.add('active');
+    else if (view === 'continents') {
+      activate('continents', '.nav-link-packages');
       renderContinentsView();
 
-      if (hash.includes('/')) {
-        const targetId = hash.replace('#continents/', '').trim();
+      if (id) {
         setTimeout(() => {
-          const el = document.getElementById(`continent-${targetId}`);
+          const el = document.getElementById(`continent-${id}`);
           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 150);
       }
     }
-    else if (hash === '#popular' || hash.startsWith('#popular/')) {
-      if (pageViews.popular) pageViews.popular.classList.add('active');
-      const popularLink = document.querySelector('.nav-link-popular');
-      if (popularLink) popularLink.classList.add('active');
-      const catKey = hash.includes('/') ? hash.replace('#popular/', '').trim() : '';
-      renderPopularView(catKey);
+    else if (view === 'popular') {
+      activate('popular', '.nav-link-popular');
+      renderPopularView(id || '');
     }
-    else if (hash.startsWith('#category/') || hash.startsWith('#country/')) {
-      const targetId = hash.replace('#category/', '').replace('#country/', '').trim();
-      if (pageViews.packageDetail) pageViews.packageDetail.classList.add('active');
-      renderPackageDetailView(targetId);
-    }
-    else if (hash.startsWith('#package/')) {
-      const packageId = hash.replace('#package/', '').trim();
-      if (pageViews.packageDetail) pageViews.packageDetail.classList.add('active');
-      renderPackageDetailView(packageId);
+    else if (view === 'category' || view === 'package') {
+      activate('packageDetail');
+      renderPackageDetailView(id);
     }
     else {
-      if (pageViews.home) pageViews.home.classList.add('active');
+      activate('home', '.nav-link-home');
+      renderHomepagePackages('all');
     }
 
     // Close mobile drawer on route change
@@ -660,14 +677,49 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mainNavLinks) mainNavLinks.classList.remove('mobile-open');
   }
 
+  /* Delegated link interception — turns every same-origin <a href="/..."> in
+     the page into a pushState navigation instead of a full reload, without
+     needing an onclick on each one. Deliberately bails out (letting the
+     browser do its normal thing) for: modified/middle clicks, target=_blank,
+     download links, external hosts, and anything with data-native-link —
+     e.g. /safari-adventures/, which is a separately-built page and NOT a
+     route this router knows how to render. */
+  document.addEventListener('click', (e) => {
+    if (e.defaultPrevented || e.button !== 0) return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+    const link = e.target.closest('a');
+    if (!link) return;
+    if (link.target && link.target !== '_self') return;
+    if (link.hasAttribute('download') || link.hasAttribute('data-native-link')) return;
+
+    const href = link.getAttribute('href');
+    if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+
+    const url = new URL(href, window.location.href);
+    if (url.origin !== window.location.origin) return;
+
+    // Only intercept paths this router actually has a view for; anything
+    // else (a real standalone page) must load normally.
+    const { view } = matchRoute(url.pathname);
+    const isHome = url.pathname.replace(/^\/+|\/+$/g, '') === '';
+    if (view === 'home' && !isHome) return;
+
+    e.preventDefault();
+    navigateTo(url.pathname);
+  });
+
   // Declared here (before the initial handleRoute() call below) because a
-  // direct load on a #continents URL invokes renderContinentsView() before
+  // direct load on a /continents/ URL invokes renderContinentsView() before
   // script execution would otherwise reach this flag's original position —
   // a `let` declared later throws (temporal dead zone) if a hoisted function
   // reads it that early.
   let isContinentsRendered = false;
 
-  window.addEventListener('hashchange', handleRoute);
+  // Back/forward buttons. (hashchange is gone — nothing routes on the hash
+  // any more; see redirectLegacyHash at the top of this file for the one
+  // remaining hash consumer, which runs once at boot.)
+  window.addEventListener('popstate', handleRoute);
   handleRoute(); // initial trigger
 
   // 3. HOMEPAGE DYNAMIC PACKAGES RENDERER
@@ -710,7 +762,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="package-footer">
 
-            <a href="#package/${pkg.id}" class="book-btn">View Details</a>
+            <a href="${buildPath('package', pkg.id)}" class="book-btn">View Details</a>
           </div>
         </div>
       </article>
@@ -804,7 +856,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="page-hero-banner">
           <h1 class="page-title">Destination Not Found</h1>
           <p class="page-subtitle">Please select a valid tour destination package from our navigation dropdown menu.</p>
-          <a href="#category/all" class="nav-cta" style="display:inline-block; margin-top:16px;">View All Packages</a>
+          <a href="${buildPath('category', 'all')}" class="nav-cta" style="display:inline-block; margin-top:16px;">View All Packages</a>
         </div>
       `;
       packagesGrid.innerHTML = '';
@@ -834,7 +886,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="package-footer">
 
-            <a href="#package/${pkg.id}" class="book-btn">View Details</a>
+            <a href="${buildPath('package', pkg.id)}" class="book-btn">View Details</a>
           </div>
         </div>
       </article>
@@ -857,7 +909,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="page-hero-banner">
           <h1 class="page-title">Destination Page Not Found</h1>
           <p class="page-subtitle">We couldn't find the requested country destination. Please select a valid destination from our catalog.</p>
-          <a href="#continents" class="nav-cta" style="display:inline-block; margin-top:20px;">Explore Continents</a>
+          <a href="/continents/" class="nav-cta" style="display:inline-block; margin-top:20px;">Explore Continents</a>
         </div>
       `;
       return;
@@ -1028,7 +1080,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.history.length > 1) {
           window.history.back();
         } else {
-          window.location.hash = '#continents';
+          window.__lmtNavigate(buildPath('continents'));
         }
       });
     }
@@ -1087,7 +1139,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cardTrigger) {
       const pkgId = cardTrigger.getAttribute('data-package-id');
       if (pkgId) {
-        window.location.hash = `#package/${pkgId}`;
+        window.__lmtNavigate(buildPath('package', pkgId));
       }
     }
 
@@ -1095,7 +1147,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cinCard && !e.target.closest('.open-enquiry-btn')) {
       const destId = cinCard.getAttribute('data-id');
       if (destId) {
-        window.location.hash = `#package/${destId}`;
+        window.__lmtNavigate(buildPath('package', destId));
       }
     }
   });
@@ -1598,7 +1650,7 @@ document.addEventListener('DOMContentLoaded', () => {
           card.addEventListener('click', (e) => {
             e.stopPropagation();
             if (dest && dest.id) {
-              window.location.hash = `#continents/${dest.id}`;
+              window.__lmtNavigate(buildPath('continents', dest.id));
             }
           });
 
@@ -1747,7 +1799,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const gridHTML = destList.map(dest => {
           const cats = (DESTINATION_CATEGORIES[dest.id] || []).join(' ');
           return `
-            <a href="#category/${dest.id}" class="country-photo-card asia-category-card" data-cats="${cats}">
+            <a href="${buildPath('category', dest.id)}" class="country-photo-card asia-category-card" data-cats="${cats}">
               <img src="${cardThumb(dest.image)}" data-full="${dest.image}" alt="${dest.name}" class="country-photo-img" width="240" height="280" decoding="async" loading="lazy" onerror="if(this.dataset.full&&this.src.indexOf('card-thumbs')>-1){this.src=this.dataset.full;}" />
               <div class="country-photo-gradient"></div>
               <span class="country-card-tag">${dest.tag}</span>
@@ -1790,7 +1842,7 @@ document.addEventListener('DOMContentLoaded', () => {
       fullList.forEach((dest, i) => {
         const isHidden = i >= destList.length;
         cardsHTML += `
-          <a href="#category/${dest.id}" class="country-photo-card"${isHidden ? ' aria-hidden="true"' : ''}>
+          <a href="${buildPath('category', dest.id)}" class="country-photo-card"${isHidden ? ' aria-hidden="true"' : ''}>
             <img src="${cardThumb(dest.image)}" data-full="${dest.image}" alt="${dest.name}" class="country-photo-img" width="240" height="280" decoding="async" onerror="if(this.dataset.full&&this.src.indexOf('card-thumbs')>-1){this.src=this.dataset.full;}" />
             <div class="country-photo-gradient"></div>
             <span class="country-card-tag">${dest.tag}</span>
@@ -1875,9 +1927,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!bar._built) {
       bar._built = true;
-      let pillsHTML = `<a href="#popular" class="asia-cat-pill" data-cat="all"><span>⭐</span> All</a>`;
+      let pillsHTML = `<a href="/popular/" class="asia-cat-pill" data-cat="all"><span>⭐</span> All</a>`;
       POPULAR_CATEGORIES.forEach(cat => {
-        pillsHTML += `<a href="#popular/${cat.key}" class="asia-cat-pill" data-cat="${cat.key}"><span>${cat.icon}</span> ${cat.label}</a>`;
+        pillsHTML += `<a href="${buildPath('popular', cat.key)}" class="asia-cat-pill" data-cat="${cat.key}"><span>${cat.icon}</span> ${cat.label}</a>`;
       });
       bar.innerHTML = pillsHTML;
     }
@@ -1899,7 +1951,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     grid.innerHTML = matches.map(dest => `
-      <a href="#category/${dest.id}" class="country-photo-card">
+      <a href="${buildPath('category', dest.id)}" class="country-photo-card">
         <img src="${cardThumb(dest.image)}" data-full="${dest.image}" alt="${dest.name}" class="country-photo-img" width="240" height="280" decoding="async" loading="lazy" onerror="if(this.dataset.full&&this.src.indexOf('card-thumbs')>-1){this.src=this.dataset.full;}" />
         <div class="country-photo-gradient"></div>
         <span class="country-card-tag">${dest.tag}</span>
@@ -1958,7 +2010,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       resultsBox.innerHTML = matches.map((d) => `
-        <a href="#category/${d.id}" class="continents-search-result">
+        <a href="${buildPath('category', d.id)}" class="continents-search-result">
           <img src="${cardThumb(d.image)}" alt="" class="continents-search-result-img" decoding="async" onerror="this.onerror=null;this.src='${d.image}';" />
           <span class="continents-search-result-text">
             <span class="continents-search-result-name">${d.name}</span>
@@ -2723,7 +2775,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (type === 'continents') {
         appendBotResponse(`
           Discover iconic tourist spots across Asia, Africa, Europe, Americas, Antarctica &amp; Australia on our dedicated 7 Continents Page!<br/><br/>
-          <a href="#continents" onclick="document.getElementById('travelAiWindow').classList.remove('open');" class="chat-wa-btn">🌍 View 7 Continents Page</a>
+          <a href="/continents/" onclick="document.getElementById('travelAiWindow').classList.remove('open');" class="chat-wa-btn">🌍 View 7 Continents Page</a>
         `);
       } else if (type === 'contact') {
         appendBotResponse(`

@@ -3,6 +3,15 @@
 
 <head>
   <meta charset="UTF-8" />
+  <!-- REQUIRED for the path-based routes. This one document is served at ~225
+       different URLs (/, /services/, /packages/tantalizing-thailand/, ... —
+       see routes.js and generate-routes.mjs). Plenty of image paths come from
+       packagesData.js as document-relative strings like
+       "assets/packages-images/bali.jpg"; without a base they would resolve
+       against the current directory and 404 on every route except the
+       homepage. The site always serves from its own domain root (public/CNAME),
+       so "/" is unconditionally correct here. -->
+  <base href="/" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Love My Tour - Outbound & Domestic Travel Packages | Hyderabad</title>
   <meta name="description"
@@ -91,7 +100,7 @@
     <!-- TOP GLOBAL NAVIGATION BAR -->
     <header class="global-navbar">
       <div class="nav-container">
-        <a href="#home" class="logo-wrapper">
+        <a href="/" class="logo-wrapper">
           <div class="logo-brand-container">
             <img src="assets/pngs/lovemytour-logo.png" alt="Love My Tour Logo" class="brand-logo" decoding="async" fetchpriority="high" />
           </div>
@@ -106,17 +115,17 @@
 
         <!-- Navigation Links (Left Side Half Alignment) -->
         <nav class="nav-links" id="mainNavLinks">
-          <a href="#home" class="nav-item nav-link-home active">Home</a>
+          <a href="/" class="nav-item nav-link-home active">Home</a>
 
           <!-- Mobile Only 7 Continents Link -->
-          <a href="#continents" class="nav-item nav-link-mobile-continents">Continents</a>
+          <a href="/continents/" class="nav-item nav-link-mobile-continents">Continents</a>
 
           <!-- Mobile Only Popular Destinations Link -->
-          <a href="#popular" class="nav-item nav-link-mobile-popular">Popular Destinations</a>
+          <a href="/popular/" class="nav-item nav-link-mobile-popular">Popular Destinations</a>
 
           <!-- 7 Continents Mega Dropdown Menu (Desktop Only) -->
           <div class="nav-dropdown nav-dropdown-packages">
-            <a href="#continents" class="nav-item dropdown-trigger nav-link-packages" type="button" style="text-decoration:none;">
+            <a href="/continents/" class="nav-item dropdown-trigger nav-link-packages" type="button" style="text-decoration:none;">
               <span>Continents</span>
               <svg class="dropdown-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M6 9l6 6 6-6" />
@@ -126,7 +135,7 @@
             <div class="dropdown-menu packages-mega-menu">
               <!-- Top Mega Header: All Continents Link -->
               <div class="mega-menu-header">
-                <a href="#continents" class="mega-all-link">
+                <a href="/continents/" class="mega-all-link">
                   <div class="mega-header-icon">🌍</div>
                   <div class="mega-header-text">
                     <strong>Explore All 7 Continents</strong>
@@ -138,31 +147,31 @@
 
               <!-- 7 Continents Links Grid — Continent Names Only -->
               <div class="mega-menu-grid continent-mega-grid">
-                <a href="#continents/asia" class="mega-continent-pill">
+                <a href="/continents/asia/" class="mega-continent-pill">
                   <span class="col-icon">🌏</span>
                   <span>Asia</span>
                 </a>
-                <a href="#continents/africa" class="mega-continent-pill">
+                <a href="/continents/africa/" class="mega-continent-pill">
                   <span class="col-icon">🦁</span>
                   <span>Africa</span>
                 </a>
-                <a href="#continents/europe" class="mega-continent-pill">
+                <a href="/continents/europe/" class="mega-continent-pill">
                   <span class="col-icon">🏰</span>
                   <span>Europe</span>
                 </a>
-                <a href="#continents/australia" class="mega-continent-pill">
+                <a href="/continents/australia/" class="mega-continent-pill">
                   <span class="col-icon">🦘</span>
                   <span>Australia</span>
                 </a>
-                <a href="#continents/south-america" class="mega-continent-pill">
+                <a href="/continents/south-america/" class="mega-continent-pill">
                   <span class="col-icon">🌿</span>
                   <span>South America</span>
                 </a>
-                <a href="#continents/north-america" class="mega-continent-pill">
+                <a href="/continents/north-america/" class="mega-continent-pill">
                   <span class="col-icon">🗽</span>
                   <span>North America</span>
                 </a>
-                <a href="#continents/antarctica" class="mega-continent-pill">
+                <a href="/continents/antarctica/" class="mega-continent-pill">
                   <span class="col-icon">🧊</span>
                   <span>Antarctica</span>
                 </a>
@@ -172,7 +181,7 @@
 
           <!-- Popular Destinations Mega Dropdown Menu (Desktop Only) -->
           <div class="nav-dropdown nav-dropdown-popular">
-            <a href="#popular" class="nav-item dropdown-trigger nav-link-popular" type="button" style="text-decoration:none;">
+            <a href="/popular/" class="nav-item dropdown-trigger nav-link-popular" type="button" style="text-decoration:none;">
               <span>Popular Destinations</span>
               <svg class="dropdown-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
                 <path d="M6 9l6 6 6-6" />
@@ -181,7 +190,7 @@
 
             <div class="dropdown-menu popular-mega-menu">
               <div class="mega-menu-header">
-                <a href="#popular" class="mega-all-link">
+                <a href="/popular/" class="mega-all-link">
                   <div class="mega-header-icon">⭐</div>
                   <div class="mega-header-text">
                     <strong>Popular Categories</strong>
@@ -192,27 +201,27 @@
               </div>
 
               <div class="mega-menu-grid popular-category-grid">
-                <a href="#popular/beach" class="mega-continent-pill">
+                <a href="/popular/beach/" class="mega-continent-pill">
                   <span class="col-icon">🏖️</span>
                   <span>Beach</span>
                 </a>
-                <a href="#popular/city" class="mega-continent-pill">
+                <a href="/popular/city/" class="mega-continent-pill">
                   <span class="col-icon">🏙️</span>
                   <span>City</span>
                 </a>
-                <a href="#popular/tropical-forest" class="mega-continent-pill">
+                <a href="/popular/tropical-forest/" class="mega-continent-pill">
                   <span class="col-icon">🌴</span>
                   <span>Tropical Forests</span>
                 </a>
-                <a href="#popular/islands" class="mega-continent-pill">
+                <a href="/popular/islands/" class="mega-continent-pill">
                   <span class="col-icon">🏝️</span>
                   <span>Islands</span>
                 </a>
-                <a href="#popular/mountains" class="mega-continent-pill">
+                <a href="/popular/mountains/" class="mega-continent-pill">
                   <span class="col-icon">⛰️</span>
                   <span>Mountains</span>
                 </a>
-                <a href="#popular/safari-wildlife" class="mega-continent-pill">
+                <a href="/popular/safari-wildlife/" class="mega-continent-pill">
                   <span class="col-icon">🦁</span>
                   <span>Safaris & Wildlife</span>
                 </a>
@@ -220,8 +229,8 @@
             </div>
           </div>
 
-          <a href="#about" class="nav-item nav-link-about">About us</a>
-          <a href="#services" class="nav-item nav-link-services">Services</a>
+          <a href="/about-us/" class="nav-item nav-link-about">About us</a>
+          <a href="/services/" class="nav-item nav-link-services">Services</a>
           <button class="nav-item nav-cta open-enquiry-btn">Enquire now</button>
         </nav>
       </div>
@@ -273,13 +282,13 @@
                   America, South America, Antarctica, Europe, and Australia.</p>
 
                 <div class="continents-quick-nav">
-                  <a href="#continents/asia" class="continent-pill-btn">Asia</a>
-                  <a href="#continents/africa" class="continent-pill-btn">Africa</a>
-                  <a href="#continents/north-america" class="continent-pill-btn">North America</a>
-                  <a href="#continents/south-america" class="continent-pill-btn">South America</a>
-                  <a href="#continents/antarctica" class="continent-pill-btn">Antarctica</a>
-                  <a href="#continents/europe" class="continent-pill-btn">Europe</a>
-                  <a href="#continents/australia" class="continent-pill-btn">Australia</a>
+                  <a href="/continents/asia/" class="continent-pill-btn">Asia</a>
+                  <a href="/continents/africa/" class="continent-pill-btn">Africa</a>
+                  <a href="/continents/north-america/" class="continent-pill-btn">North America</a>
+                  <a href="/continents/south-america/" class="continent-pill-btn">South America</a>
+                  <a href="/continents/antarctica/" class="continent-pill-btn">Antarctica</a>
+                  <a href="/continents/europe/" class="continent-pill-btn">Europe</a>
+                  <a href="/continents/australia/" class="continent-pill-btn">Australia</a>
                 </div>
               </div>
 
@@ -671,25 +680,25 @@
     <p class="partner-rail-title">Featured Destinations</p>
     <div class="marquee-container">
       <div class="marquee-content">
-        <a href="#category/andaman" class="partner-item"><span class="partner-icon">🏝️</span> Andaman</a>
-        <a href="#category/bali" class="partner-item"><span class="partner-icon">🌺</span> Bali</a>
-        <a href="#category/dubai" class="partner-item"><span class="partner-icon">🏙️</span> Dubai</a>
-        <a href="#category/europe" class="partner-item"><span class="partner-icon">🏰</span> Europe</a>
-        <a href="#category/goa" class="partner-item"><span class="partner-icon">🏖️</span> Goa</a>
-        <a href="#category/himachal" class="partner-item"><span class="partner-icon">🏔️</span> Himachal</a>
-        <a href="#category/hong-kong" class="partner-item"><span class="partner-icon">🎡</span> Hong Kong</a>
-        <a href="#category/kashmir" class="partner-item"><span class="partner-icon">❄️</span> Kashmir</a>
-        <a href="#category/kerala" class="partner-item"><span class="partner-icon">🚣</span> Kerala</a>
-        <a href="#category/ladakh" class="partner-item"><span class="partner-icon">🏍️</span> Leh-Ladakh</a>
-        <a href="#category/maldives" class="partner-item"><span class="partner-icon">🌴</span> Maldives</a>
-        <a href="#category/singapore" class="partner-item"><span class="partner-icon">🦁</span> Singapore</a>
-        <a href="#category/thailand" class="partner-item"><span class="partner-icon">🐘</span> Thailand</a>
-        <a href="#category/turkey" class="partner-item"><span class="partner-icon">🕌</span> Turkey</a>
+        <a href="/andaman-tour-packages/" class="partner-item"><span class="partner-icon">🏝️</span> Andaman</a>
+        <a href="/bali-tour-packages/" class="partner-item"><span class="partner-icon">🌺</span> Bali</a>
+        <a href="/dubai-tour-packages/" class="partner-item"><span class="partner-icon">🏙️</span> Dubai</a>
+        <a href="/europe-tour-packages/" class="partner-item"><span class="partner-icon">🏰</span> Europe</a>
+        <a href="/goa-tour-packages/" class="partner-item"><span class="partner-icon">🏖️</span> Goa</a>
+        <a href="/himachal-tour-packages/" class="partner-item"><span class="partner-icon">🏔️</span> Himachal</a>
+        <a href="/hong-kong-tour-packages/" class="partner-item"><span class="partner-icon">🎡</span> Hong Kong</a>
+        <a href="/kashmir-tour-packages/" class="partner-item"><span class="partner-icon">❄️</span> Kashmir</a>
+        <a href="/kerala-tour-packages/" class="partner-item"><span class="partner-icon">🚣</span> Kerala</a>
+        <a href="/ladakh-tour-packages/" class="partner-item"><span class="partner-icon">🏍️</span> Leh-Ladakh</a>
+        <a href="/maldives-tour-packages/" class="partner-item"><span class="partner-icon">🌴</span> Maldives</a>
+        <a href="/singapore-tour-packages/" class="partner-item"><span class="partner-icon">🦁</span> Singapore</a>
+        <a href="/thailand-tour-packages/" class="partner-item"><span class="partner-icon">🐘</span> Thailand</a>
+        <a href="/turkey-tour-packages/" class="partner-item"><span class="partner-icon">🕌</span> Turkey</a>
         <!-- Loop duplicate for seamless scroll -->
-        <a href="#category/andaman" class="partner-item"><span class="partner-icon">🏝️</span> Andaman</a>
-        <a href="#category/bali" class="partner-item"><span class="partner-icon">🌺</span> Bali</a>
-        <a href="#category/dubai" class="partner-item"><span class="partner-icon">🏙️</span> Dubai</a>
-        <a href="#category/europe" class="partner-item"><span class="partner-icon">🏰</span> Europe</a>
+        <a href="/andaman-tour-packages/" class="partner-item"><span class="partner-icon">🏝️</span> Andaman</a>
+        <a href="/bali-tour-packages/" class="partner-item"><span class="partner-icon">🌺</span> Bali</a>
+        <a href="/dubai-tour-packages/" class="partner-item"><span class="partner-icon">🏙️</span> Dubai</a>
+        <a href="/europe-tour-packages/" class="partner-item"><span class="partner-icon">🏰</span> Europe</a>
       </div>
     </div>
   </section>
@@ -705,7 +714,7 @@
     <div class="domestic-marquee-container">
       <div class="domestic-marquee-track">
         <!-- Set A -->
-        <a href="#category/kashmir" class="domestic-photo-card">
+        <a href="/kashmir-tour-packages/" class="domestic-photo-card">
           <img src="https://images.unsplash.com/photo-1595815771614-ade9d652a65d?auto=format&fit=crop&w=600&q=80" alt="Kashmir" class="domestic-card-img" loading="lazy" decoding="async" />
           <div class="domestic-card-gradient"></div>
           <span class="domestic-card-tag">❄️ PARADISE ON EARTH</span>
@@ -714,7 +723,7 @@
             <p class="domestic-card-desc">Dal Lake Houseboats, Gulmarg Snow &amp; Pahalgam Valleys</p>
           </div>
         </a>
-        <a href="#category/kerala" class="domestic-photo-card">
+        <a href="/kerala-tour-packages/" class="domestic-photo-card">
           <img src="https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=600&q=80" alt="Kerala" class="domestic-card-img" loading="lazy" decoding="async" />
           <div class="domestic-card-gradient"></div>
           <span class="domestic-card-tag">🚣 GOD'S OWN COUNTRY</span>
@@ -723,7 +732,7 @@
             <p class="domestic-card-desc">Alleppey Backwaters &amp; Munnar Tea Gardens</p>
           </div>
         </a>
-        <a href="#category/himachal" class="domestic-photo-card">
+        <a href="/himachal-tour-packages/" class="domestic-photo-card">
           <img src="https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=600&q=80" alt="Himachal" class="domestic-card-img" loading="lazy" decoding="async" />
           <div class="domestic-card-gradient"></div>
           <span class="domestic-card-tag">🏔️ VALLEY OF GODS</span>
@@ -732,7 +741,7 @@
             <p class="domestic-card-desc">Manali Snow Pass, Shimla Hills &amp; Solang Valley</p>
           </div>
         </a>
-        <a href="#category/ladakh" class="domestic-photo-card">
+        <a href="/ladakh-tour-packages/" class="domestic-photo-card">
           <img src="https://images.unsplash.com/photo-1581793745862-99fde7fa73d2?auto=format&fit=crop&w=600&q=80" alt="Leh-Ladakh" class="domestic-card-img" loading="lazy" decoding="async" />
           <div class="domestic-card-gradient"></div>
           <span class="domestic-card-tag">🏍️ HIGH MOUNTAIN PASSES</span>
@@ -741,7 +750,7 @@
             <p class="domestic-card-desc">Pangong Lake &amp; Khardung La Pass Expedition</p>
           </div>
         </a>
-        <a href="#category/goa" class="domestic-photo-card">
+        <a href="/goa-tour-packages/" class="domestic-photo-card">
           <img src="assets/packages-images/goa.png" alt="Goa" class="domestic-card-img" loading="lazy" decoding="async" />
           <div class="domestic-card-gradient"></div>
           <span class="domestic-card-tag">🏖️ SUN &amp; GOLDEN BEACHES</span>
@@ -750,7 +759,7 @@
             <p class="domestic-card-desc">Calangute Beach, Watersports &amp; Sunset Cruises</p>
           </div>
         </a>
-        <a href="#category/andaman" class="domestic-photo-card">
+        <a href="/andaman-tour-packages/" class="domestic-photo-card">
           <img src="assets/packages-images/Andaman.jpg" alt="Andaman" class="domestic-card-img" loading="lazy" decoding="async" />
           <div class="domestic-card-gradient"></div>
           <span class="domestic-card-tag">🏝️ TROPICAL EMERALD ISLES</span>
@@ -761,7 +770,7 @@
         </a>
 
         <!-- Set B — duplicate loop -->
-        <a href="#category/kashmir" class="domestic-photo-card" aria-hidden="true">
+        <a href="/kashmir-tour-packages/" class="domestic-photo-card" aria-hidden="true">
           <img src="https://images.unsplash.com/photo-1595815771614-ade9d652a65d?auto=format&fit=crop&w=600&q=80" alt="" class="domestic-card-img" loading="lazy" decoding="async" />
           <div class="domestic-card-gradient"></div>
           <span class="domestic-card-tag">❄️ PARADISE ON EARTH</span>
@@ -770,7 +779,7 @@
             <p class="domestic-card-desc">Dal Lake Houseboats, Gulmarg Snow &amp; Pahalgam Valleys</p>
           </div>
         </a>
-        <a href="#category/kerala" class="domestic-photo-card" aria-hidden="true">
+        <a href="/kerala-tour-packages/" class="domestic-photo-card" aria-hidden="true">
           <img src="https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=600&q=80" alt="" class="domestic-card-img" loading="lazy" decoding="async" />
           <div class="domestic-card-gradient"></div>
           <span class="domestic-card-tag">🚣 GOD'S OWN COUNTRY</span>
@@ -779,7 +788,7 @@
             <p class="domestic-card-desc">Alleppey Backwaters &amp; Munnar Tea Gardens</p>
           </div>
         </a>
-        <a href="#category/himachal" class="domestic-photo-card" aria-hidden="true">
+        <a href="/himachal-tour-packages/" class="domestic-photo-card" aria-hidden="true">
           <img src="https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=600&q=80" alt="" class="domestic-card-img" loading="lazy" decoding="async" />
           <div class="domestic-card-gradient"></div>
           <span class="domestic-card-tag">🏔️ VALLEY OF GODS</span>
@@ -788,7 +797,7 @@
             <p class="domestic-card-desc">Manali Snow Pass, Shimla Hills &amp; Solang Valley</p>
           </div>
         </a>
-        <a href="#category/ladakh" class="domestic-photo-card" aria-hidden="true">
+        <a href="/ladakh-tour-packages/" class="domestic-photo-card" aria-hidden="true">
           <img src="https://images.unsplash.com/photo-1581793745862-99fde7fa73d2?auto=format&fit=crop&w=600&q=80" alt="" class="domestic-card-img" loading="lazy" decoding="async" />
           <div class="domestic-card-gradient"></div>
           <span class="domestic-card-tag">🏍️ HIGH MOUNTAIN PASSES</span>
@@ -1762,13 +1771,13 @@
         <h1 class="continents-hero-title">Explore the World by Continent</h1>
         <p class="continents-hero-subtitle">Discover handpicked tourist destinations across Asia, Africa, North America, South America, Antarctica, Europe, and Australia.</p>
         <div class="continents-quick-nav">
-          <a href="#continents/asia" class="continent-pill-btn">Asia</a>
-          <a href="#continents/africa" class="continent-pill-btn">Africa</a>
-          <a href="#continents/north-america" class="continent-pill-btn">North America</a>
-          <a href="#continents/south-america" class="continent-pill-btn">South America</a>
-          <a href="#continents/antarctica" class="continent-pill-btn">Antarctica</a>
-          <a href="#continents/europe" class="continent-pill-btn">Europe</a>
-          <a href="#continents/australia" class="continent-pill-btn">Australia</a>
+          <a href="/continents/asia/" class="continent-pill-btn">Asia</a>
+          <a href="/continents/africa/" class="continent-pill-btn">Africa</a>
+          <a href="/continents/north-america/" class="continent-pill-btn">North America</a>
+          <a href="/continents/south-america/" class="continent-pill-btn">South America</a>
+          <a href="/continents/antarctica/" class="continent-pill-btn">Antarctica</a>
+          <a href="/continents/europe/" class="continent-pill-btn">Europe</a>
+          <a href="/continents/australia/" class="continent-pill-btn">Australia</a>
         </div>
 
         <!-- Live search — glass search-box style (class shared with other site
@@ -1829,13 +1838,13 @@
       <div class="footer-col">
         <h4 class="footer-heading">Quick Links</h4>
         <ul class="footer-links-list">
-          <li class="footer-link-item"><a href="#home">Home Flight Booking</a></li>
-          <li class="footer-link-item"><a href="#about">About Us</a></li>
-          <li class="footer-link-item"><a href="#services">Our Services</a></li>
-          <li class="footer-link-item"><a href="#pricing">Pricing Plans</a></li>
-          <li class="footer-link-item"><a href="#careers">Careers <span class="footer-hiring-tag">Hiring</span></a>
+          <li class="footer-link-item"><a href="/">Home Flight Booking</a></li>
+          <li class="footer-link-item"><a href="/about-us/">About Us</a></li>
+          <li class="footer-link-item"><a href="/services/">Our Services</a></li>
+          <li class="footer-link-item"><a href="/">Pricing Plans</a></li>
+          <li class="footer-link-item"><a href="/careers/">Careers <span class="footer-hiring-tag">Hiring</span></a>
           </li>
-          <li class="footer-link-item"><a href="#contact">Contact Agency</a></li>
+          <li class="footer-link-item"><a href="/contact/">Contact Agency</a></li>
           <li class="footer-link-item"><a href="continents/">7 Continents Guide</a></li>
           <li class="footer-link-item"><a href="continents/asia/">Asia Tour Packages</a></li>
           <li class="footer-link-item"><a href="continents/europe/">Europe Tour Packages</a></li>
