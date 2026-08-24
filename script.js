@@ -1,6 +1,46 @@
 import { destinationsData, continentsData, getPackageById, POPULAR_CATEGORIES, DESTINATION_CATEGORIES } from './packagesData.js';
 
 /* ============================================================================
+   LEGACY HASH -> REAL PAGE REDIRECT
+   A handful of hash routes (#about, #services, #category/thailand, ...) are
+   what Google's existing sitelinks for this site still point at, from
+   before those sections got a real, separately-indexable static page
+   (see /about-us/, /services/, /thailand-tour-packages/, etc.). A hash
+   fragment is never sent to the server and can never be indexed as its own
+   URL, so landing here from an old sitelink/search result would otherwise
+   render the SPA view at a URL Google can't distinguish from the homepage —
+   exactly the "duplicate content, hash pages don't get indexed" problem.
+   This runs once, at the very top of the module (before the router, before
+   any rendering), and ONLY on a direct/external load that already has one
+   of these hashes — an in-app link click still sets the hash and navigates
+   within the SPA normally, this never fires for that, since by then the
+   page has already loaded past this point. window.location.replace (not
+   .href) is used so the redirect doesn't leave a broken back-button entry.
+   ========================================================================== */
+(function redirectLegacyHash() {
+  const LEGACY_HASH_REDIRECTS = {
+    '#about': 'about-us/',
+    '#services': 'services/',
+    '#category/thailand': 'thailand-tour-packages/',
+    '#country/thailand': 'thailand-tour-packages/',
+    '#category/maldives': 'maldives-tour-packages/',
+    '#country/maldives': 'maldives-tour-packages/',
+    '#category/malaysia': 'malaysia-tour-packages/',
+    '#country/malaysia': 'malaysia-tour-packages/',
+    '#category/bali': 'bali-tour-packages/',
+    '#country/bali': 'bali-tour-packages/',
+    '#package/tantalizing-thailand': 'thailand-tour-packages/',
+    '#package/mesmerising-maldives-escape': 'maldives-tour-packages/',
+    '#package/fascinating-singapore-malaysia': 'malaysia-tour-packages/',
+    '#package/amazing-bali-holiday': 'bali-tour-packages/'
+  };
+  const target = LEGACY_HASH_REDIRECTS[window.location.hash];
+  if (target) {
+    window.location.replace(target);
+  }
+})();
+
+/* ============================================================================
    WHATSAPP ENQUIRY DELIVERY
    Every website form (hero "Get Quote Now", the "Book Now" enquiry modal and
    the contact-page form) hands its filled-in data straight to WhatsApp as one

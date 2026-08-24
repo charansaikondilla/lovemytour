@@ -36,6 +36,7 @@ export default defineConfig({
         thailandPackages: resolve(__dirname, 'thailand-tour-packages/index.html'),
         maldivesPackages: resolve(__dirname, 'maldives-tour-packages/index.html'),
         malaysiaPackages: resolve(__dirname, 'malaysia-tour-packages/index.html'),
+        baliPackages: resolve(__dirname, 'bali-tour-packages/index.html'),
       },
     },
   },
