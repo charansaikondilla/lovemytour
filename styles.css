@@ -1584,6 +1584,16 @@ body {
   line-height: 1.4;
 }
 
+.footer-phone-icon {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.footer-phone-num {
+  font-size: 14px;
+  font-weight: 800;
+}
+
 .contact-info-item a {
   color: inherit;
   text-decoration: underline;
