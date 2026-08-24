@@ -2775,3 +2775,72 @@ Object.values(continentsData).forEach(continent => {
   });
 });
 
+// ==========================================================================
+// POPULAR CATEGORIES
+// Used by the navbar "Popular Destinations" menu and the Asia continent
+// page's category filter. Each destination id maps to one or more of the
+// six fixed category keys below — some destinations (e.g. Egypt, Zimbabwe)
+// don't fit any of them cleanly and are simply left out of every filter;
+// they still appear everywhere else on the site (Continents, search, etc.).
+// ==========================================================================
+export const POPULAR_CATEGORIES = [
+  { key: "beach", label: "Beach", icon: "🏖️" },
+  { key: "city", label: "City", icon: "🏙️" },
+  { key: "tropical-forest", label: "Tropical Forests", icon: "🌴" },
+  { key: "islands", label: "Islands", icon: "🏝️" },
+  { key: "mountains", label: "Mountains", icon: "⛰️" },
+  { key: "safari-wildlife", label: "Safaris & Wildlife", icon: "🦁" }
+];
+
+export const DESTINATION_CATEGORIES = {
+  // Asia
+  thailand: ["beach"],
+  singapore: ["city"],
+  malaysia: ["tropical-forest", "city"],
+  vietnam: ["islands"],
+  japan: ["city", "mountains"],
+  srilanka: ["islands", "safari-wildlife"],
+  dubai: ["city"],
+  bali: ["islands", "beach"],
+  andaman: ["islands", "beach"],
+  kerala: ["tropical-forest", "mountains"],
+  maldives: ["islands", "beach"],
+  turkey: ["city"],
+  // Africa
+  "south-africa": ["safari-wildlife", "beach"],
+  kenya: ["safari-wildlife"],
+  tanzania: ["safari-wildlife", "mountains"],
+  rwanda: ["safari-wildlife"],
+  uganda: ["tropical-forest", "safari-wildlife"],
+  mauritius: ["beach", "islands"],
+  seychelles: ["beach", "islands"],
+  madagascar: ["safari-wildlife", "tropical-forest"],
+  // Europe
+  spain: ["city"],
+  switzerland: ["mountains"],
+  france: ["city"],
+  italy: ["city"],
+  uk: ["city"],
+  greece: ["islands", "beach"],
+  iceland: ["mountains"],
+  norway: ["mountains"],
+  // Australia & Oceania
+  sydney: ["city", "beach"],
+  melbourne: ["city", "beach"],
+  "australia-country": ["beach", "islands"],
+  "new-zealand": ["mountains"],
+  fiji: ["islands", "beach"],
+  // South America
+  brazil: ["tropical-forest", "city"],
+  peru: ["mountains"],
+  argentina: ["mountains", "city"],
+  colombia: ["city"],
+  // North America
+  usa: ["city"],
+  canada: ["mountains"],
+  mexico: ["beach"],
+  // Antarctica
+  "antarctic-peninsula": ["safari-wildlife"],
+  "south-shetland": ["safari-wildlife"]
+};
+

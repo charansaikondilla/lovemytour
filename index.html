@@ -111,6 +111,9 @@
           <!-- Mobile Only 7 Continents Link -->
           <a href="#continents" class="nav-item nav-link-mobile-continents">Continents</a>
 
+          <!-- Mobile Only Popular Destinations Link -->
+          <a href="#popular" class="nav-item nav-link-mobile-popular">Popular Destinations</a>
+
           <!-- 7 Continents Mega Dropdown Menu (Desktop Only) -->
           <div class="nav-dropdown nav-dropdown-packages">
             <a href="#continents" class="nav-item dropdown-trigger nav-link-packages" type="button" style="text-decoration:none;">
@@ -162,6 +165,56 @@
                 <a href="#continents/antarctica" class="mega-continent-pill">
                   <span class="col-icon">🧊</span>
                   <span>Antarctica</span>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Popular Destinations Mega Dropdown Menu (Desktop Only) -->
+          <div class="nav-dropdown nav-dropdown-popular">
+            <a href="#popular" class="nav-item dropdown-trigger nav-link-popular" type="button" style="text-decoration:none;">
+              <span>Popular Destinations</span>
+              <svg class="dropdown-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </a>
+
+            <div class="dropdown-menu popular-mega-menu">
+              <div class="mega-menu-header">
+                <a href="#popular" class="mega-all-link">
+                  <div class="mega-header-icon">⭐</div>
+                  <div class="mega-header-text">
+                    <strong>Popular Categories</strong>
+                    <span>Browse our best-loved destinations grouped by the kind of trip you want</span>
+                  </div>
+                  <span class="mega-header-arrow">→</span>
+                </a>
+              </div>
+
+              <div class="mega-menu-grid popular-category-grid">
+                <a href="#popular/beach" class="mega-continent-pill">
+                  <span class="col-icon">🏖️</span>
+                  <span>Beach</span>
+                </a>
+                <a href="#popular/city" class="mega-continent-pill">
+                  <span class="col-icon">🏙️</span>
+                  <span>City</span>
+                </a>
+                <a href="#popular/tropical-forest" class="mega-continent-pill">
+                  <span class="col-icon">🌴</span>
+                  <span>Tropical Forests</span>
+                </a>
+                <a href="#popular/islands" class="mega-continent-pill">
+                  <span class="col-icon">🏝️</span>
+                  <span>Islands</span>
+                </a>
+                <a href="#popular/mountains" class="mega-continent-pill">
+                  <span class="col-icon">⛰️</span>
+                  <span>Mountains</span>
+                </a>
+                <a href="#popular/safari-wildlife" class="mega-continent-pill">
+                  <span class="col-icon">🦁</span>
+                  <span>Safaris & Wildlife</span>
                 </a>
               </div>
             </div>
@@ -1740,6 +1793,21 @@
 
     <!-- Divided Continent Sections Container (Rendered Dynamically from continentsData) -->
     <div class="continents-body-container" id="continentsBodyContainer"></div>
+  </div>
+
+  <!-- ==================== VIEW: POPULAR DESTINATIONS (BY CATEGORY) ==================== -->
+  <div id="popular-view" class="page-view">
+    <section class="dedicated-page-wrapper">
+      <div class="page-hero-banner">
+        <span class="page-tag">⭐ Popular Destinations</span>
+        <h1 class="page-title" id="popularPageTitle">Popular Categories</h1>
+        <p class="page-subtitle" id="popularPageSubtitle">Browse our best-loved destinations, grouped by the kind of
+          trip you want.</p>
+      </div>
+
+      <div class="asia-categories-bar" id="popularCategoryBar"></div>
+      <div class="destination-grid" id="popularCategoryGrid"></div>
+    </section>
   </div>
 
   <!-- SITE FOOTER & CONTACT INFO -->

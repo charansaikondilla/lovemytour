@@ -1,4 +1,4 @@
-import { destinationsData, continentsData, getPackageById } from './packagesData.js';
+import { destinationsData, continentsData, getPackageById, POPULAR_CATEGORIES, DESTINATION_CATEGORIES } from './packagesData.js';
 
 /* ============================================================================
    WHATSAPP ENQUIRY DELIVERY
@@ -510,7 +510,8 @@ document.addEventListener('DOMContentLoaded', () => {
     careers: document.getElementById('careers-view'),
     category: document.getElementById('category-view'),
     packageDetail: document.getElementById('package-detail-view'),
-    continents: document.getElementById('continents-view')
+    continents: document.getElementById('continents-view'),
+    popular: document.getElementById('popular-view')
   };
 
   const navLinks = document.querySelectorAll('.nav-links .nav-item');
@@ -577,6 +578,13 @@ document.addEventListener('DOMContentLoaded', () => {
           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 150);
       }
+    }
+    else if (hash === '#popular' || hash.startsWith('#popular/')) {
+      if (pageViews.popular) pageViews.popular.classList.add('active');
+      const popularLink = document.querySelector('.nav-link-popular');
+      if (popularLink) popularLink.classList.add('active');
+      const catKey = hash.includes('/') ? hash.replace('#popular/', '').trim() : '';
+      renderPopularView(catKey);
     }
     else if (hash.startsWith('#category/') || hash.startsWith('#country/')) {
       const targetId = hash.replace('#category/', '').replace('#country/', '').trim();
@@ -864,7 +872,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <ul class="fb-meta">
               <li>${esc(pkg.duration)}</li>
               <li>${esc(pkg.tag)}</li>
-              <li class="fb-meta-star">${esc(pkg.rating)} &middot; ${esc(pkg.reviewsCount)} reviews</li>
+              <li class="fb-meta-star">${esc(pkg.rating)} Love My Tour Rating &middot; ${esc(pkg.reviewsCount)} reviews</li>
             </ul>
 
             <a href="${whatsappUrl}" target="_blank" rel="noopener" class="fb-hero-cta">
@@ -881,7 +889,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <dl class="fb-facts">
             <div class="fb-fact"><dt>Duration</dt><dd>${esc(pkg.duration)}</dd></div>
             <div class="fb-fact"><dt>Experience</dt><dd>${esc(pkg.tag)}</dd></div>
-            <div class="fb-fact"><dt>Rating</dt><dd>${esc(pkg.rating)} &middot; ${esc(pkg.reviewsCount)} reviews</dd></div>
+            <div class="fb-fact"><dt>Love My Tour Rating</dt><dd>${esc(pkg.rating)} &middot; ${esc(pkg.reviewsCount)} reviews</dd></div>
           </dl>
         </section>
 
@@ -1523,7 +1531,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="continent-card-duration">${dest.badge}</div>
                 <div class="continent-card-footer-row">
                   <div class="continent-card-rating">
-                    <span class="star-rating">4.8 ★</span>
+                    <span class="star-rating" title="Love My Tour Rating">4.8 ★</span>
                     <span class="reviews-count">(250 reviews)</span>
                   </div>
                   <button type="button" class="cyan-book-btn open-enquiry-btn">Book Now</button>
@@ -1666,8 +1674,53 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
 
-      let cardsHTML = '';
       const destList = cData.destinations || [];
+
+      // Asia gets a static, fully-listed category grid instead of the
+      // auto-scrolling marquee every other continent uses — no motion, no
+      // horizontal scroll container, every destination on screen at once,
+      // filterable by the same category taxonomy as the navbar's Popular
+      // Destinations menu (see POPULAR_CATEGORIES / DESTINATION_CATEGORIES
+      // in packagesData.js).
+      if (cKey === 'asia') {
+        const pillsHTML = POPULAR_CATEGORIES.map(cat => `
+          <button type="button" class="asia-cat-pill" data-cat="${cat.key}">
+            <span>${cat.icon}</span> ${cat.label}
+          </button>
+        `).join('');
+
+        const gridHTML = destList.map(dest => {
+          const cats = (DESTINATION_CATEGORIES[dest.id] || []).join(' ');
+          return `
+            <a href="#category/${dest.id}" class="country-photo-card asia-category-card" data-cats="${cats}">
+              <img src="${cardThumb(dest.image)}" data-full="${dest.image}" alt="${dest.name}" class="country-photo-img" width="240" height="280" decoding="async" loading="lazy" onerror="if(this.dataset.full&&this.src.indexOf('card-thumbs')>-1){this.src=this.dataset.full;}" />
+              <div class="country-photo-gradient"></div>
+              <span class="country-card-tag">${dest.tag}</span>
+              <div class="country-photo-info">
+                <h3 class="country-photo-name">${dest.name}</h3>
+                <p class="country-photo-desc">${dest.desc}</p>
+              </div>
+            </a>
+          `;
+        }).join('');
+
+        const asiaHTML = `
+          <div class="asia-categories-heading">ASIA CATEGORIES</div>
+          <div class="asia-categories-bar" id="asiaCategoriesBar">
+            <button type="button" class="asia-cat-pill active" data-cat="all"><span>🌏</span> All</button>
+            ${pillsHTML}
+          </div>
+          <div class="asia-categories-grid destination-grid" id="asiaCategoriesGrid">
+            ${gridHTML}
+          </div>
+        `;
+
+        block.innerHTML = headerHTML + asiaHTML;
+        container.appendChild(block);
+        return;
+      }
+
+      let cardsHTML = '';
       // Duplicate for seamless infinite auto-scroll loop.
       // RC-16 FIX (North America): these images deliberately do NOT use
       // loading="lazy". Inside a marquee the track is moved with a CSS/JS
@@ -1716,6 +1769,91 @@ document.addEventListener('DOMContentLoaded', () => {
     // visibility observer — it runs no per-frame code.
     initMarquees();
     initContinentsSearch();
+    initAsiaCategoryFilter();
+  }
+
+  // Category pill filter for the static Asia grid (see renderContinentsView).
+  // Pure show/hide on the already-rendered cards — no re-render, no scroll
+  // container, so there is nothing for a swipe/drag handler to fight with.
+  function initAsiaCategoryFilter() {
+    const bar = document.getElementById('asiaCategoriesBar');
+    const grid = document.getElementById('asiaCategoriesGrid');
+    if (!bar || !grid || bar._wired) return;
+    bar._wired = true;
+
+    bar.addEventListener('click', (e) => {
+      const btn = e.target.closest('.asia-cat-pill');
+      if (!btn) return;
+
+      bar.querySelectorAll('.asia-cat-pill').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+
+      const cat = btn.getAttribute('data-cat');
+      grid.querySelectorAll('.asia-category-card').forEach(card => {
+        const cats = (card.getAttribute('data-cats') || '').split(' ');
+        const show = cat === 'all' || cats.includes(cat);
+        card.style.display = show ? '' : 'none';
+      });
+    });
+  }
+
+  // Navbar "Popular Destinations" page — flattens every continent's
+  // destinations once, then filters that flat list by category. Route is
+  // #popular (all destinations, every category) or #popular/<key> (one
+  // category); the pill bar itself just links to those hashes, so switching
+  // categories is a normal route change handled by handleRoute().
+  function renderPopularView(catKey) {
+    const bar = document.getElementById('popularCategoryBar');
+    const grid = document.getElementById('popularCategoryGrid');
+    const titleEl = document.getElementById('popularPageTitle');
+    const subEl = document.getElementById('popularPageSubtitle');
+    if (!bar || !grid) return;
+
+    const activeCat = POPULAR_CATEGORIES.find(c => c.key === catKey);
+
+    if (titleEl) titleEl.textContent = activeCat ? `${activeCat.label} Destinations` : 'Popular Categories';
+    if (subEl) {
+      subEl.textContent = activeCat
+        ? `Our best-loved ${activeCat.label.toLowerCase()} destinations, hand-picked across every continent.`
+        : 'Browse our best-loved destinations, grouped by the kind of trip you want.';
+    }
+
+    if (!bar._built) {
+      bar._built = true;
+      let pillsHTML = `<a href="#popular" class="asia-cat-pill" data-cat="all"><span>⭐</span> All</a>`;
+      POPULAR_CATEGORIES.forEach(cat => {
+        pillsHTML += `<a href="#popular/${cat.key}" class="asia-cat-pill" data-cat="${cat.key}"><span>${cat.icon}</span> ${cat.label}</a>`;
+      });
+      bar.innerHTML = pillsHTML;
+    }
+    bar.querySelectorAll('.asia-cat-pill').forEach(p => {
+      p.classList.toggle('active', p.getAttribute('data-cat') === (activeCat ? activeCat.key : 'all'));
+    });
+
+    if (!renderPopularView._allDestinations) {
+      const list = [];
+      Object.values(continentsData).forEach(cData => {
+        (cData.destinations || []).forEach(dest => list.push(dest));
+      });
+      renderPopularView._allDestinations = list;
+    }
+
+    const matches = renderPopularView._allDestinations.filter(dest => {
+      if (!activeCat) return true;
+      return (DESTINATION_CATEGORIES[dest.id] || []).includes(activeCat.key);
+    });
+
+    grid.innerHTML = matches.map(dest => `
+      <a href="#category/${dest.id}" class="country-photo-card">
+        <img src="${cardThumb(dest.image)}" data-full="${dest.image}" alt="${dest.name}" class="country-photo-img" width="240" height="280" decoding="async" loading="lazy" onerror="if(this.dataset.full&&this.src.indexOf('card-thumbs')>-1){this.src=this.dataset.full;}" />
+        <div class="country-photo-gradient"></div>
+        <span class="country-card-tag">${dest.tag}</span>
+        <div class="country-photo-info">
+          <h3 class="country-photo-name">${dest.name}</h3>
+          <p class="country-photo-desc">${dest.desc}</p>
+        </div>
+      </a>
+    `).join('') || `<p class="popular-empty-msg">No destinations found for this category yet.</p>`;
   }
 
   // Live search for the Continents page. Results drop down below the search
