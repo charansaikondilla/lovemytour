@@ -3065,14 +3065,14 @@ body {
 .service-title {
   font-size: 20px;
   font-weight: 700;
-  color: #2563eb;
+  color: var(--primary);
   margin-bottom: 12px;
 }
 
 /* Services page main heading — scoped to this page only so every other
    .page-hero-banner (About, Contact, Popular, etc.) keeps its own color. */
 #services-view .page-title {
-  color: #2563eb;
+  color: var(--primary);
 }
 
 .service-desc {
